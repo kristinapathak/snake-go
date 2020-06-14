@@ -1,6 +1,9 @@
 package main
 
 import (
+	"fmt"
+	"time"
+
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/imdraw"
 	"github.com/faiface/pixel/pixelgl"
@@ -22,7 +25,7 @@ func run() {
 		borderWidth    float64
 	)
 
-	// these should be made configurable but for now I'm hardcoding them
+	// TODO: these should be made configurable but for now I'm hardcoding them
 	squareSize = 15 // each square should be 15px by 15px
 	numSquaresWide = 30
 	numSquaresHigh = 20
@@ -50,12 +53,40 @@ func run() {
 	borderWidth = 3 //3px border around the playing area
 	playingBoard := NewPlayingBoard(boardWidth, boardHeight, buffer, borderWidth)
 
+	es := Edges{
+		left:   0,
+		right:  int(numSquaresWide),
+		bottom: 0,
+		top:    int(numSquaresHigh),
+	}
+	// TODO: set up items for the snake to eat
+
+	// set up the snake itself
+	snake := NewSnake(es, 500*time.Millisecond, squareSize, buffer, colornames.Darkmagenta)
+	fmt.Println("made snake")
+
 	// keep running and updating things until the window is closed.
 	for !win.Closed() {
 		win.Clear(colornames.Mediumaquamarine)
 		playingBoard.Draw(win)
+
+		if win.Pressed(pixelgl.KeyLeft) {
+			snake.SetDirection(Left)
+		}
+		if win.Pressed(pixelgl.KeyRight) {
+			snake.SetDirection(Right)
+		}
+		if win.Pressed(pixelgl.KeyDown) {
+			snake.SetDirection(Down)
+		}
+		if win.Pressed(pixelgl.KeyUp) {
+			snake.SetDirection(Up)
+		}
+		snake.Paint().Draw(win)
+
 		win.Update()
 	}
+	snake.Stop()
 }
 
 // NewPlayingBoard highlights the playing area with a background and border.
