@@ -2,7 +2,6 @@ package main
 
 import (
 	"container/list"
-	"fmt"
 	"image/color"
 	"sync"
 	"time"
@@ -88,18 +87,15 @@ func NewSnake(edges Edges, speed time.Duration, squareSize float64, buffer float
 		colorr:           c,
 		shutdown:         make(chan struct{}, 1),
 	}
-	fmt.Printf("snake made")
 	s.reset()
-	fmt.Printf("reset snake")
 	s.updateDrawing()
-	fmt.Printf("created drawing")
 	go s.move()
-	fmt.Printf("started ticker")
 	return s
 }
 
 func (s *Snake) SetDirection(d Direction) {
 	s.lock.Lock()
+	// TODO: don't let the snake do a full 180 turn
 	s.direction = d
 	s.lock.Unlock()
 }
@@ -139,10 +135,6 @@ func (s *Snake) updateLocations() bool {
 		return false
 	}
 
-	s.lock.RUnlock()
-	s.lock.Lock()
-	defer s.lock.Unlock()
-
 	// get new spot on the board based on direction
 	h := s.locations.Front().Value.(point)
 	newX := h.X()
@@ -157,6 +149,10 @@ func (s *Snake) updateLocations() bool {
 	case Right:
 		newX += 1
 	}
+
+	s.lock.RUnlock()
+	s.lock.Lock()
+	defer s.lock.Unlock()
 
 	// check that the new spot won't be outside of the game board
 	if newY < s.edges.bottom || newY >= s.edges.top || newX < s.edges.left || newX >= s.edges.right {
@@ -186,7 +182,7 @@ func (s *Snake) reset() {
 }
 
 func (s *Snake) updateDrawing() {
-	s.lock.Lock()
+	s.lock.RLock()
 	newDrawing := imdraw.New(nil)
 	newDrawing.Color = s.colorr
 	newDrawing.EndShape = imdraw.SharpEndShape
@@ -200,6 +196,8 @@ func (s *Snake) updateDrawing() {
 		newDrawing.Rectangle(0)
 		e = e.Next()
 	}
+	s.lock.RUnlock()
+	s.lock.Lock()
 	s.currDrawing = newDrawing
 	s.lock.Unlock()
 }

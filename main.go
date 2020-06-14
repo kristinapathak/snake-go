@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"time"
 
 	"github.com/faiface/pixel"
@@ -63,7 +62,6 @@ func run() {
 
 	// set up the snake itself
 	snake := NewSnake(es, 500*time.Millisecond, squareSize, buffer, colornames.Darkmagenta)
-	fmt.Println("made snake")
 
 	// keep running and updating things until the window is closed.
 	for !win.Closed() {
