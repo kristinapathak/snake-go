@@ -1,0 +1,10 @@
+---
+
+board:
+  squareSize: 30
+  numSquaresWide: 45
+  numSquaresHigh: 20
+  buffer: 20
+  borderWidth: 3
+
+snakeSpeed: 300ms
