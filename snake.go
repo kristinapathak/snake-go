@@ -47,12 +47,13 @@ type Edges struct {
 
 type Snake struct {
 	// these values are changed asynchronously and need a lock.
-	direction   Direction
-	currSpeed   time.Duration
-	locations   *list.List
-	currDrawing *imdraw.IMDraw
-	score       int
-	lock        sync.RWMutex
+	lastDirection Direction
+	currDirection Direction
+	currSpeed     time.Duration
+	locations     *list.List
+	currDrawing   *imdraw.IMDraw
+	score         int
+	lock          sync.RWMutex
 
 	item             tracker
 	edges            Edges
@@ -105,13 +106,13 @@ func (s *Snake) SetDirection(d Direction) {
 	s.lock.Lock()
 	defer s.lock.Unlock()
 	// don't let the snake do a 180 turn
-	if s.direction == Up && d == Down ||
-		s.direction == Down && d == Up ||
-		s.direction == Left && d == Right ||
-		s.direction == Right && d == Left {
+	if s.lastDirection == Up && d == Down ||
+		s.lastDirection == Down && d == Up ||
+		s.lastDirection == Left && d == Right ||
+		s.lastDirection == Right && d == Left {
 		return
 	}
-	s.direction = d
+	s.currDirection = d
 }
 
 func (s *Snake) Paint() *imdraw.IMDraw {
@@ -144,7 +145,7 @@ func (s *Snake) move() {
 
 func (s *Snake) updateLocations() bool {
 	s.lock.RLock()
-	if s.direction == None {
+	if s.currDirection == None {
 		s.lock.RUnlock()
 		return false
 	}
@@ -153,7 +154,7 @@ func (s *Snake) updateLocations() bool {
 	h := s.locations.Front().Value.(point)
 	newX := h.X()
 	newY := h.Y()
-	switch s.direction {
+	switch s.currDirection {
 	case Up:
 		newY++
 	case Down:
@@ -185,6 +186,9 @@ func (s *Snake) updateLocations() bool {
 		e = e.Next()
 	}
 
+	// set current direction to last direction
+	s.lastDirection = s.currDirection
+
 	// add new item to the list
 	newSquare := location{x: newX, y: newY}
 	s.locations.PushFront(newSquare)
@@ -204,7 +208,8 @@ func (s *Snake) updateLocations() bool {
 
 // game is lost, bring everything back to the beginning
 func (s *Snake) reset() {
-	s.direction = None
+	s.lastDirection = None
+	s.currDirection = None
 	s.locations.Init()
 	s.locations.PushFront(s.startingPosition)
 	s.score = 0
