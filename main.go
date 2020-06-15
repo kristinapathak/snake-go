@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/kristinaspring/snake-go/gameloop"
 	"os"
 	"time"
 
@@ -79,28 +80,46 @@ func run() {
 	// set up the snake itself
 	snake := NewSnake(nil, es, config.SnakeSpeed, config.Board.SquareSize, config.Board.Buffer, colornames.Darkmagenta)
 
+	stopChan := gameloop.StartLoop(Game{
+		playingBoard: playingBoard,
+		window:       win,
+	}, time.Second/60, snake)
+
 	// keep running and updating things until the window is closed.
 	for !win.Closed() {
-		win.Clear(colornames.Mediumaquamarine)
-		playingBoard.Draw(win)
-
-		if win.Pressed(pixelgl.KeyLeft) {
-			snake.SetDirection(Left)
-		}
-		if win.Pressed(pixelgl.KeyRight) {
-			snake.SetDirection(Right)
-		}
-		if win.Pressed(pixelgl.KeyDown) {
-			snake.SetDirection(Down)
-		}
-		if win.Pressed(pixelgl.KeyUp) {
-			snake.SetDirection(Up)
-		}
-		snake.Paint().Draw(win)
-
-		win.Update()
 	}
+	stopChan <- struct{}{}
 	snake.Stop()
+}
+
+type Game struct {
+	playingBoard *imdraw.IMDraw
+	window       *pixelgl.Window
+}
+
+func (g Game) Integrate(currentState interface{}, t float64, deltaT float64) interface{} {
+	snake := currentState.(*Snake)
+	if g.window.Pressed(pixelgl.KeyLeft) {
+		snake.SetDirection(Left)
+	}
+	if g.window.Pressed(pixelgl.KeyRight) {
+		snake.SetDirection(Right)
+	}
+	if g.window.Pressed(pixelgl.KeyDown) {
+		snake.SetDirection(Down)
+	}
+	if g.window.Pressed(pixelgl.KeyUp) {
+		snake.SetDirection(Up)
+	}
+	return snake
+}
+
+func (g Game) Render(state interface{}, t float64, alpha float64) {
+	g.window.Clear(colornames.Mediumaquamarine)
+	g.playingBoard.Draw(g.window)
+	snake := state.(*Snake)
+	snake.Paint().Draw(g.window)
+	g.window.Update()
 }
 
 // NewPlayingBoard highlights the playing area with a background and border.
