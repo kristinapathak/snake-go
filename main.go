@@ -1,39 +1,56 @@
 package main
 
 import (
+	"fmt"
+	"os"
 	"time"
 
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/imdraw"
 	"github.com/faiface/pixel/pixelgl"
+	"github.com/spf13/viper"
 	"golang.org/x/image/colornames"
 )
+
+type SnakeConfig struct {
+	Board      BoardConfig
+	SnakeSpeed time.Duration
+}
+
+type BoardConfig struct {
+	SquareSize     float64
+	NumSquaresWide float64
+	NumSquaresHigh float64
+	Buffer         float64
+	BorderWidth    float64
+}
 
 func main() {
 	pixelgl.Run(run)
 }
 
 func run() {
-	var (
-		squareSize     float64
-		numSquaresWide float64
-		numSquaresHigh float64
-		buffer         float64
-		boardWidth     float64
-		boardHeight    float64
-		borderWidth    float64
-	)
 
-	// TODO: these should be made configurable but for now I'm hardcoding them
-	squareSize = 15 // each square should be 15px by 15px
-	numSquaresWide = 30
-	numSquaresHigh = 20
-	buffer = 20 // 20px buffer around the whole window
+	// load configuration with viper
+	v := viper.New()
+	v.AddConfigPath(".")
+	v.SetConfigName("snake")
+	err := v.ReadInConfig()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to read in viper config: %v\n", err.Error())
+		os.Exit(1)
+	}
+	config := new(SnakeConfig)
+	err = v.Unmarshal(config)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to unmarshal config: %v\n", err.Error())
+		os.Exit(1)
+	}
 
-	boardWidth = squareSize * numSquaresWide
-	boardHeight = squareSize * numSquaresHigh
-	windowWidth := boardWidth + buffer*2
-	windowHeight := boardHeight + buffer*2
+	boardWidth := config.Board.SquareSize * config.Board.NumSquaresWide
+	boardHeight := config.Board.SquareSize * config.Board.NumSquaresHigh
+	windowWidth := boardWidth + config.Board.Buffer*2
+	windowHeight := boardHeight + config.Board.Buffer*2
 	cfg := pixelgl.WindowConfig{
 		Title:  "Snake!",
 		Bounds: pixel.R(0, 0, windowWidth, windowHeight),
@@ -49,19 +66,18 @@ func run() {
 	// win.SetSmooth(true)
 
 	// give us a nice background
-	borderWidth = 3 //3px border around the playing area
-	playingBoard := NewPlayingBoard(boardWidth, boardHeight, buffer, borderWidth)
+	playingBoard := NewPlayingBoard(boardWidth, boardHeight, config.Board.Buffer, config.Board.BorderWidth)
 
 	es := Edges{
 		left:   0,
-		right:  int(numSquaresWide),
+		right:  int(config.Board.NumSquaresWide),
 		bottom: 0,
-		top:    int(numSquaresHigh),
+		top:    int(config.Board.NumSquaresHigh),
 	}
 	// TODO: set up items for the snake to eat
 
 	// set up the snake itself
-	snake := NewSnake(nil, es, 500*time.Millisecond, squareSize, buffer, colornames.Darkmagenta)
+	snake := NewSnake(nil, es, config.SnakeSpeed, config.Board.SquareSize, config.Board.Buffer, colornames.Darkmagenta)
 
 	// keep running and updating things until the window is closed.
 	for !win.Closed() {
