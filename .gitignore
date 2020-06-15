@@ -16,3 +16,7 @@ snake-go*
 
 # Dependency directories
 vendor/
+
+
+# goland
+.idea/
