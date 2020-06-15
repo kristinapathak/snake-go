@@ -95,9 +95,15 @@ func NewSnake(edges Edges, speed time.Duration, squareSize float64, buffer float
 
 func (s *Snake) SetDirection(d Direction) {
 	s.lock.Lock()
-	// TODO: don't let the snake do a full 180 turn
+	defer s.lock.Unlock()
+	// don't let the snake do a 180 turn
+	if s.direction == Up && d == Down ||
+		s.direction == Down && d == Up ||
+		s.direction == Left && d == Right ||
+		s.direction == Right && d == Left {
+		return
+	}
 	s.direction = d
-	s.lock.Unlock()
 }
 
 func (s *Snake) Paint() *imdraw.IMDraw {
