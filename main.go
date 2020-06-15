@@ -122,9 +122,9 @@ func (g Game) Integrate(currentState interface{}, t float64, deltaT float64) int
 func (g Game) Render(state interface{}, t float64, alpha float64) {
 	g.window.Clear(colornames.Mediumaquamarine)
 	g.playingBoard.Draw(g.window)
+	g.tracker.Paint().Draw(g.window)
 	snake := state.(*Snake)
 	snake.Paint().Draw(g.window)
-	g.tracker.Paint().Draw(g.window)
 	g.window.Update()
 }
 
