@@ -51,8 +51,10 @@ type Snake struct {
 	currSpeed   time.Duration
 	locations   *list.List
 	currDrawing *imdraw.IMDraw
+	score       int
 	lock        sync.RWMutex
 
+	item             tracker
 	edges            Edges
 	startingPosition location
 	squareSize       float64
@@ -61,7 +63,7 @@ type Snake struct {
 	shutdown         chan struct{}
 }
 
-func NewSnake(edges Edges, speed time.Duration, squareSize float64, buffer float64, c color.Color) *Snake {
+func NewSnake(itemTracker tracker, edges Edges, speed time.Duration, squareSize float64, buffer float64, c color.Color) *Snake {
 	e := edges
 	if edges.right < edges.left {
 		e.right = edges.left
@@ -77,9 +79,15 @@ func NewSnake(edges Edges, speed time.Duration, squareSize float64, buffer float
 
 	l := list.New()
 
+	item := itemTracker
+	if item == nil {
+		item = defaultTracker{}
+	}
+
 	s := &Snake{
 		currSpeed:        speed,
 		locations:        l,
+		item:             item,
 		edges:            e,
 		startingPosition: location{x: middleX, y: middleY},
 		squareSize:       squareSize,
@@ -147,13 +155,13 @@ func (s *Snake) updateLocations() bool {
 	newY := h.Y()
 	switch s.direction {
 	case Up:
-		newY += 1
+		newY++
 	case Down:
-		newY -= 1
+		newY--
 	case Left:
-		newX -= 1
+		newX--
 	case Right:
-		newX += 1
+		newX++
 	}
 
 	s.lock.RUnlock()
@@ -166,16 +174,29 @@ func (s *Snake) updateLocations() bool {
 		return true
 	}
 
-	// TODO: check for collisions with itself
+	// check for collisions with itself
+	e := s.locations.Front()
+	for e != nil {
+		l := e.Value.(point)
+		if l.X() == newX && l.Y() == newY {
+			s.reset()
+			return true
+		}
+		e = e.Next()
+	}
 
 	// add new item to the list
-	s.locations.PushFront(location{x: newX, y: newY})
+	newSquare := location{x: newX, y: newY}
+	s.locations.PushFront(newSquare)
 
-	// TODO: check if we ate something and if so, don't remove the last item
-	// from the list.
-
-	// remove the last item from the list
-	s.locations.Remove(s.locations.Back())
+	// check if we ate something and if so, don't remove the last item from the
+	// list.
+	if s.item.At(newSquare) {
+		s.score++
+	} else {
+		// remove the last item from the list
+		s.locations.Remove(s.locations.Back())
+	}
 
 	return true
 }
@@ -185,6 +206,7 @@ func (s *Snake) reset() {
 	s.direction = None
 	s.locations.Init()
 	s.locations.PushFront(s.startingPosition)
+	s.score = 0
 }
 
 func (s *Snake) updateDrawing() {

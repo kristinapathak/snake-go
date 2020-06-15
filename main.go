@@ -61,7 +61,7 @@ func run() {
 	// TODO: set up items for the snake to eat
 
 	// set up the snake itself
-	snake := NewSnake(es, 500*time.Millisecond, squareSize, buffer, colornames.Darkmagenta)
+	snake := NewSnake(nil, es, 500*time.Millisecond, squareSize, buffer, colornames.Darkmagenta)
 
 	// keep running and updating things until the window is closed.
 	for !win.Closed() {
