@@ -2,9 +2,10 @@ package main
 
 import (
 	"fmt"
-	"github.com/kristinaspring/snake-go/gameloop"
 	"os"
 	"time"
+
+	"github.com/kristinaspring/snake-go/gameloop"
 
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/imdraw"
@@ -75,15 +76,18 @@ func run() {
 		bottom: 0,
 		top:    int(config.Board.NumSquaresHigh),
 	}
-	// TODO: set up items for the snake to eat
+	// set up items for the snake to eat
+	tracker := NewSingleTracker(es, config.Board.SquareSize, config.Board.Buffer, colornames.Greenyellow)
 
 	// set up the snake itself
-	snake := NewSnake(nil, es, config.SnakeSpeed, config.Board.SquareSize, config.Board.Buffer, colornames.Darkmagenta)
+	snake := NewSnake(tracker, es, config.SnakeSpeed, config.Board.SquareSize, config.Board.Buffer, colornames.Darkmagenta)
 
-	stopChan := gameloop.StartLoop(Game{
+	g := Game{
 		playingBoard: playingBoard,
+		tracker:      tracker,
 		window:       win,
-	}, time.Second/60, snake)
+	}
+	stopChan := gameloop.StartLoop(g, time.Second/60, snake)
 
 	// keep running and updating things until the window is closed.
 	for !win.Closed() {
@@ -94,6 +98,7 @@ func run() {
 
 type Game struct {
 	playingBoard *imdraw.IMDraw
+	tracker      tracker
 	window       *pixelgl.Window
 }
 
@@ -117,6 +122,7 @@ func (g Game) Integrate(currentState interface{}, t float64, deltaT float64) int
 func (g Game) Render(state interface{}, t float64, alpha float64) {
 	g.window.Clear(colornames.Mediumaquamarine)
 	g.playingBoard.Draw(g.window)
+	g.tracker.Paint().Draw(g.window)
 	snake := state.(*Snake)
 	snake.Paint().Draw(g.window)
 	g.window.Update()
