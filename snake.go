@@ -192,6 +192,7 @@ func (s *Snake) updateLocations() bool {
 	// check if we ate something and if so, don't remove the last item from the
 	// list.
 	if s.item.At(newSquare) {
+		s.item.Reset(s.locations)
 		s.score++
 	} else {
 		// remove the last item from the list
