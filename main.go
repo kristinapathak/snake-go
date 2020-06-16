@@ -16,7 +16,7 @@ import (
 
 type SnakeConfig struct {
 	Board      BoardConfig
-	SnakeSpeed time.Duration
+	SnakeSpeed float64
 }
 
 type BoardConfig struct {
@@ -25,6 +25,7 @@ type BoardConfig struct {
 	NumSquaresHigh float64
 	Buffer         float64
 	BorderWidth    float64
+	ShowGrid       bool
 }
 
 func main() {
@@ -69,12 +70,14 @@ func run() {
 
 	// give us a nice background
 	playingBoard := NewPlayingBoard(boardWidth, boardHeight, config.Board.Buffer, config.Board.BorderWidth)
-
+	if config.Board.ShowGrid {
+		drawGrid(playingBoard, config.Board.NumSquaresWide, config.Board.NumSquaresHigh, config.Board.Buffer, config.Board.SquareSize)
+	}
 	es := Edges{
 		left:   0,
-		right:  int(config.Board.NumSquaresWide),
+		right:  config.Board.NumSquaresWide,
 		bottom: 0,
-		top:    int(config.Board.NumSquaresHigh),
+		top:    config.Board.NumSquaresHigh,
 	}
 	// set up items for the snake to eat
 	tracker := NewSingleTracker(es, config.Board.SquareSize, config.Board.Buffer, colornames.Greenyellow)
@@ -116,6 +119,7 @@ func (g Game) Integrate(currentState interface{}, t float64, deltaT float64) int
 	if g.window.Pressed(pixelgl.KeyUp) {
 		snake.SetDirection(Up)
 	}
+	snake.Tick(t, deltaT)
 	return snake
 }
 
@@ -125,6 +129,7 @@ func (g Game) Render(state interface{}, t float64, alpha float64) {
 	g.tracker.Paint().Draw(g.window)
 	snake := state.(*Snake)
 	snake.Paint().Draw(g.window)
+
 	g.window.Update()
 }
 
@@ -143,4 +148,34 @@ func NewPlayingBoard(boardWidth float64, boardHeight float64, buffer float64, bo
 	playingBoard.Rectangle(0)
 
 	return playingBoard
+}
+
+func drawGrid(board *imdraw.IMDraw, squareWidthCount float64, squareHeightCount float64, buffer float64, squareSize float64) {
+	fmt.Println(squareWidthCount, squareHeightCount, buffer, squareSize)
+
+	for i := 0; i <= int(squareWidthCount); i++ {
+		board.Color = colornames.Red
+		board.EndShape = imdraw.RoundEndShape
+		board.Push(pixel.V(buffer+float64(i)*squareSize, buffer), pixel.V(buffer+float64(i)*squareSize, buffer+(squareHeightCount*squareSize)))
+		width := 2.0
+		if i%int(squareSize) == 0 {
+			width = 3.0
+		}
+		board.Line(width)
+	}
+	for j := 0; j <= int(squareHeightCount); j++ {
+		board.Color = colornames.Red
+		board.EndShape = imdraw.RoundEndShape
+		Y := buffer + (float64(j) * squareSize)
+		start := pixel.V(buffer, Y)
+		end := pixel.V(buffer+(squareWidthCount*squareSize), Y)
+		board.Push(start, end)
+		width := 2.0
+		if j%int(squareSize) == 0 {
+			width = 3.0
+		}
+		board.Line(width)
+		// fmt.Printf("%#v / %#v\n", start, end)
+	}
+
 }

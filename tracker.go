@@ -2,7 +2,9 @@ package main
 
 import (
 	"container/list"
+	"fmt"
 	"image/color"
+	"math/rand"
 	"sync"
 
 	"github.com/faiface/pixel"
@@ -61,7 +63,7 @@ func NewSingleTracker(edges Edges, squareSize float64, buffer float64, c color.C
 
 func (s *singleTracker) At(l location) bool {
 	s.lock.RLock()
-	if l.X() != s.currLocation.X() || l.Y() != s.currLocation.Y() {
+	if float64(int(l.X())) != s.currLocation.X() || float64(int(l.Y())) != s.currLocation.Y() {
 		s.lock.RUnlock()
 		return false
 	}
@@ -84,12 +86,16 @@ func (s *singleTracker) Paint() *imdraw.IMDraw {
 }
 
 func (s *singleTracker) findNewLocation(_ *list.List) location {
+	gridX := (s.edges.right - s.edges.left)
+	gridY := (s.edges.top - s.edges.bottom)
 	// TODO: use the snake location to make sure we don't pick a spot where the
 	// snake is.
+	fmt.Printf("GridWdith Square X: %f Y: %f\n", gridX, gridY)
+
 	// TODO: Make this random.
 	return location{
-		x: 3,
-		y: 7,
+		x: float64(rand.Intn(int(gridX)-1) + 1),
+		y: float64(rand.Intn(int(gridY)-1) + 1),
 	}
 }
 
@@ -102,7 +108,7 @@ func (s *singleTracker) updateDrawing() {
 	floatX := float64(s.currLocation.X())
 	floatY := float64(s.currLocation.Y())
 
-	newDrawing.Push(pixel.Vec{X: s.buffer + floatX*s.squareSize, Y: s.buffer + floatY*s.squareSize}, pixel.Vec{X: s.buffer + (floatX+1)*s.squareSize, Y: s.buffer + (floatY+1)*s.squareSize})
+	newDrawing.Push(pixel.Vec{X: s.buffer + floatX*s.squareSize, Y: s.buffer + floatY*s.squareSize}, pixel.Vec{X: s.buffer + (floatX)*s.squareSize + s.squareSize, Y: s.buffer + (floatY)*s.squareSize + s.squareSize})
 	newDrawing.Rectangle(0)
 
 	s.lock.RUnlock()
