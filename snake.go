@@ -169,7 +169,7 @@ func (s *Snake) Tick(t float64, deltaT float64) {
 		newX = h.X() + s.pixelsPerSec*deltaT
 	}
 
-	threshold := 0.1
+	threshold := 5.0
 	if s.nextDirection != None && s.nextDirection != s.currDirection {
 		xCheck := math.Mod(newX, s.squareSize)
 		yCheck := math.Mod(newY, s.squareSize)
@@ -184,7 +184,7 @@ func (s *Snake) Tick(t float64, deltaT float64) {
 	}
 
 	// check that the new spot won't be outside of the game board
-	if newY < s.edges.bottom || newY >= s.edges.top || newX < s.edges.left || newX >= s.edges.right {
+	if newY < s.edges.bottom || newY+1 >= s.edges.top || newX < s.edges.left || newX+1 >= s.edges.right {
 		s.reset()
 		return
 	}
