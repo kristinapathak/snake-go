@@ -172,7 +172,7 @@ func (s *Snake) Tick(t float64, deltaT float64) {
 		newX = h.X() + s.pixelsPerSec*deltaT
 	}
 
-	if s.nextDirection != None {
+	if s.nextDirection != None && s.nextDirection != s.currDirection {
 		xCheck := math.Mod(newX, s.squareSize)
 		yCheck := math.Mod(newY, s.squareSize)
 
