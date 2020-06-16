@@ -52,6 +52,7 @@ type Snake struct {
 	nextDirection Direction
 	locations     *list.List
 	currDrawing   *imdraw.IMDraw
+	grow          int
 	score         int
 
 	item             tracker
@@ -209,11 +210,17 @@ func (s *Snake) Tick(t float64, deltaT float64) {
 	// list.
 	if s.item.At(newSquare) {
 		s.item.Reset(s.locations)
+		s.grow += 5
 		s.score++
-	} else {
-		// remove the last item from the list
-		s.locations.Remove(s.locations.Back())
 	}
+
+	if s.grow > 0 {
+		s.grow--
+		return
+	}
+
+	// remove the last item from the list
+	s.locations.Remove(s.locations.Back())
 }
 
 // game is lost, bring everything back to the beginning
@@ -223,6 +230,7 @@ func (s *Snake) reset() {
 	s.nextDirection = None
 	s.locations.Init()
 	s.locations.PushFront(s.startingPosition)
+	s.grow = 15
 	s.score = 0
 }
 
