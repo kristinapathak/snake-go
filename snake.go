@@ -128,7 +128,7 @@ func (s *Snake) Paint() *imdraw.IMDraw {
 	for e != nil {
 		l := e.Value.(point)
 
-		newDrawing.Push(pixel.Vec{X: s.buffer + l.X()*s.squareSize, Y: s.buffer + l.Y()*s.squareSize}, pixel.Vec{X: s.buffer + (l.X()*s.squareSize) + s.squareSize, Y: s.buffer + (l.Y()*s.squareSize) + s.squareSize})
+		newDrawing.Push(pixel.Vec{X: s.buffer + l.X()*s.squareSize, Y: s.buffer + l.Y()*s.squareSize}, pixel.Vec{X: s.buffer + (l.X() * s.squareSize) + s.squareSize, Y: s.buffer + (l.Y() * s.squareSize) + s.squareSize})
 		newDrawing.Rectangle(0)
 		e = e.Next()
 	}
@@ -161,30 +161,6 @@ func (s *Snake) Tick(t float64, deltaT float64) {
 	newX := h.X()
 	newY := h.Y()
 
-	// TODO:// Check if movemend direction should change
-	// roundX := math.Round(newX)
-	// roundY := math.Round(newY)
-	xCheck := math.Mod(newX, s.squareSize)
-	yCheck := math.Mod(newY, s.squareSize)
-	if xCheck < 0.01 {
-		if s.nextDirection != None {
-			s.currDirection = s.nextDirection
-			s.nextDirection = None
-			newX = math.Round(newX)
-		}
-
-	} else if yCheck < 0.01 {
-		// fmt.Printf("Update Direction Tick X: %f Y: %f -> DeltaT %f | RoundX: %f RoundY: %f SquareSize: %f \n", h.X(), h.Y(), deltaT, xCheck, yCheck, s.squareSize)
-		if s.nextDirection != None {
-			s.currDirection = s.nextDirection
-			s.nextDirection = None
-			newX = math.Round(newY)
-		}
-
-	} else {
-		// fmt.Printf("Tick X: %f Y: %f -> DeltaT %f | RoundX: %f RoundY: %f SquareSize: %f \n", h.X(), h.Y(), deltaT, xCheck, yCheck, s.squareSize)
-	}
-
 	switch s.currDirection {
 	case Up:
 		newY = h.Y() + s.pixelsPerSec*deltaT
@@ -194,6 +170,33 @@ func (s *Snake) Tick(t float64, deltaT float64) {
 		newX = h.X() - s.pixelsPerSec*deltaT
 	case Right:
 		newX = h.X() + s.pixelsPerSec*deltaT
+	}
+
+	// TODO:// Check if movemend direction should change
+	// roundX := math.Round(newX)
+	// roundY := math.Round(newY)
+	xCheck := math.Mod(newX, s.squareSize)
+	yCheck := math.Mod(newY, s.squareSize)
+	// fmt.Printf("Update Direction Tick X: %f Y: %f -> DeltaT %f | RoundX: %f RoundY: %f SquareSize: %f \n", h.X(), h.Y(), deltaT, math.Abs(s.squareSize-xCheck), math.Abs(s.squareSize-yCheck), s.squareSize)
+	if xCheck < 0.01 {
+		if s.nextDirection != None {
+			s.currDirection = s.nextDirection
+			s.nextDirection = None
+			newX = math.Round(newX)
+			newY = math.Round(newY)
+		}
+
+	} else if yCheck < 0.01 {
+		// fmt.Printf("Update Direction Tick X: %f Y: %f -> DeltaT %f | RoundX: %f RoundY: %f SquareSize: %f \n", h.X(), h.Y(), deltaT, xCheck, yCheck, s.squareSize)
+		if s.nextDirection != None {
+			s.currDirection = s.nextDirection
+			s.nextDirection = None
+			newX = math.Round(newX)
+			newY = math.Round(newY)
+		}
+
+	} else {
+		// fmt.Printf("Tick X: %f Y: %f -> DeltaT %f | RoundX: %f RoundY: %f SquareSize: %f \n", h.X(), h.Y(), deltaT, xCheck, yCheck, s.squareSize)
 	}
 
 	// check that the new spot won't be outside of the game board

@@ -160,9 +160,9 @@ func drawGrid(squareWidthCount float64, squareHeightCount float64, buffer float6
 		gridBoard.Color = colornames.Red
 		gridBoard.EndShape = imdraw.RoundEndShape
 		gridBoard.Push(pixel.V(buffer+float64(i)*squareSize, buffer), pixel.V(buffer+float64(i)*squareSize, buffer+(squareHeightCount*squareSize)))
-		width := 1.0
+		width := 2.0
 		if i%10 == 0 {
-			width = 2.0
+			width = 3.0
 		}
 		gridBoard.Line(width)
 	}
@@ -173,9 +173,9 @@ func drawGrid(squareWidthCount float64, squareHeightCount float64, buffer float6
 		start := pixel.V(buffer, Y)
 		end := pixel.V(buffer+(squareWidthCount*squareSize), Y)
 		gridBoard.Push(start, end)
-		width := 1.0
+		width := 2.0
 		if j%10 == 0 {
-			width = 2.0
+			width = 3.0
 		}
 		gridBoard.Line(width)
 		// fmt.Printf("%#v / %#v\n", start, end)
