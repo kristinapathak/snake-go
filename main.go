@@ -69,9 +69,8 @@ func run() {
 
 	// give us a nice background
 	playingBoard := NewPlayingBoard(boardWidth, boardHeight, config.Board.Buffer, config.Board.BorderWidth)
-	if true {
-		drawGrid(playingBoard, config.Board.NumSquaresWide, config.Board.NumSquaresHigh, config.Board.Buffer, config.Board.SquareSize)
-	}
+
+	gridBoard := drawGrid(config.Board.NumSquaresWide, config.Board.NumSquaresHigh, config.Board.Buffer, config.Board.SquareSize)
 
 	es := Edges{
 		left:   0,
@@ -88,6 +87,7 @@ func run() {
 	g := Game{
 		playingBoard: playingBoard,
 		tracker:      tracker,
+		gridBoard:    gridBoard,
 		window:       win,
 	}
 	stopChan := gameloop.StartLoop(g, time.Second/60, snake)
@@ -101,6 +101,7 @@ func run() {
 
 type Game struct {
 	playingBoard *imdraw.IMDraw
+	gridBoard    *imdraw.IMDraw
 	tracker      tracker
 	window       *pixelgl.Window
 }
@@ -126,9 +127,11 @@ func (g Game) Integrate(currentState interface{}, t float64, deltaT float64) int
 func (g Game) Render(state interface{}, t float64, alpha float64) {
 	g.window.Clear(colornames.Mediumaquamarine)
 	g.playingBoard.Draw(g.window)
+	g.gridBoard.Draw(g.window)
 	g.tracker.Paint().Draw(g.window)
 	snake := state.(*Snake)
 	snake.Paint().Draw(g.window)
+
 	g.window.Update()
 }
 
@@ -149,23 +152,38 @@ func NewPlayingBoard(boardWidth float64, boardHeight float64, buffer float64, bo
 	return playingBoard
 }
 
-func drawGrid(playingBoard *imdraw.IMDraw, boardWidth float64, boardHeight float64, buffer float64, squareSize float64) {
+func drawGrid(squareWidthCount float64, squareHeightCount float64, buffer float64, squareSize float64) *imdraw.IMDraw {
+	fmt.Println(squareWidthCount, squareHeightCount, buffer, squareSize)
+	gridBoard := imdraw.New(nil)
 
-	playingBoard.Color = colornames.Black
-	playingBoard.EndShape = imdraw.RoundEndShape
-
-	for i := 0; i < int(boardWidth); i++ {
-		playingBoard.Push(pixel.V(buffer+float64(i)*squareSize, buffer), pixel.V(buffer+float64(i)*squareSize, buffer+(boardHeight*squareSize)))
-		playingBoard.Line(1)
+	for i := 0; i <= int(squareWidthCount); i++ {
+		gridBoard.Color = colornames.Red
+		gridBoard.EndShape = imdraw.RoundEndShape
+		gridBoard.Push(pixel.V(buffer+float64(i)*squareSize, buffer), pixel.V(buffer+float64(i)*squareSize, buffer+(squareHeightCount*squareSize)))
+		width := 1.0
+		if i%10 == 0 {
+			width = 2.0
+		}
+		gridBoard.Line(width)
 	}
-	for j := 0; j < int(boardHeight); j++ {
-		playingBoard.Push(pixel.V(buffer, buffer+(float64(j)*squareSize)), pixel.V(buffer+(boardWidth*squareSize), buffer+(float64(j)*squareSize)))
-		playingBoard.Line(1)
+	for j := 0; j <= int(squareHeightCount); j++ {
+		gridBoard.Color = colornames.Red
+		gridBoard.EndShape = imdraw.RoundEndShape
+		Y := buffer + (float64(j) * squareSize)
+		start := pixel.V(buffer, Y)
+		end := pixel.V(buffer+(squareWidthCount*squareSize), Y)
+		gridBoard.Push(start, end)
+		width := 1.0
+		if j%10 == 0 {
+			width = 2.0
+		}
+		gridBoard.Line(width)
+		// fmt.Printf("%#v / %#v\n", start, end)
 	}
 
-	playingBoard.Color = colornames.Red
-	playingBoard.EndShape = imdraw.SharpEndShape
-	playingBoard.Push(pixel.V(0,0), pixel.V(squareSize, squareSize))
-	playingBoard.Rectangle(0.0)
-
+	gridBoard.Color = colornames.Red
+	gridBoard.EndShape = imdraw.SharpEndShape
+	gridBoard.Push(pixel.V(0, 0), pixel.V(squareSize, squareSize))
+	gridBoard.Rectangle(0.0)
+	return gridBoard
 }

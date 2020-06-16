@@ -102,7 +102,7 @@ func NewSnake(itemTracker tracker, edges Edges, speed time.Duration, squareSize 
 	}
 	s.reset()
 	// s.updateDrawing()
-	s.currDirection = Left
+	s.currDirection = None
 	// go s.move()
 	return s
 }
@@ -233,7 +233,8 @@ func (s *Snake) Tick(t float64, deltaT float64) {
 // game is lost, bring everything back to the beginning
 func (s *Snake) reset() {
 	s.lastDirection = None
-	s.currDirection = Left
+	s.currDirection = None
+	s.nextDirection = None
 	s.locations.Init()
 	s.locations.PushFront(s.startingPosition)
 	s.score = 0
