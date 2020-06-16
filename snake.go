@@ -172,37 +172,22 @@ func (s *Snake) Tick(t float64, deltaT float64) {
 		newX = h.X() + s.pixelsPerSec*deltaT
 	}
 
-	// TODO:// Check if movemend direction should change
-	// roundX := math.Round(newX)
-	// roundY := math.Round(newY)
-	xCheck := math.Mod(newX, s.squareSize)
-	yCheck := math.Mod(newY, s.squareSize)
-	// fmt.Printf("Update Direction Tick X: %f Y: %f -> DeltaT %f | RoundX: %f RoundY: %f SquareSize: %f \n", h.X(), h.Y(), deltaT, math.Abs(s.squareSize-xCheck), math.Abs(s.squareSize-yCheck), s.squareSize)
-	if xCheck < 0.01 {
-		if s.nextDirection != None {
+	if s.nextDirection != None {
+		xCheck := math.Mod(newX, s.squareSize)
+		yCheck := math.Mod(newY, s.squareSize)
+
+		if xCheck < 0.01 || (s.squareSize-xCheck) < 0.01 || yCheck < 0.01 || (s.squareSize-yCheck) < 0.01 {
+			s.lastDirection = s.currDirection
 			s.currDirection = s.nextDirection
 			s.nextDirection = None
 			newX = math.Round(newX)
 			newY = math.Round(newY)
 		}
-
-	} else if yCheck < 0.01 {
-		// fmt.Printf("Update Direction Tick X: %f Y: %f -> DeltaT %f | RoundX: %f RoundY: %f SquareSize: %f \n", h.X(), h.Y(), deltaT, xCheck, yCheck, s.squareSize)
-		if s.nextDirection != None {
-			s.currDirection = s.nextDirection
-			s.nextDirection = None
-			newX = math.Round(newX)
-			newY = math.Round(newY)
-		}
-
-	} else {
-		// fmt.Printf("Tick X: %f Y: %f -> DeltaT %f | RoundX: %f RoundY: %f SquareSize: %f \n", h.X(), h.Y(), deltaT, xCheck, yCheck, s.squareSize)
 	}
 
 	// check that the new spot won't be outside of the game board
 	if newY < s.edges.bottom || newY >= s.edges.top || newX < s.edges.left || newX >= s.edges.right {
 		s.reset()
-		fmt.Println("died")
 		return
 	}
 
