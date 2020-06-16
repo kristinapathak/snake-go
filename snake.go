@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"image/color"
 	"math"
-	"time"
 
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/imdraw"
@@ -51,7 +50,6 @@ type Snake struct {
 	lastDirection Direction
 	currDirection Direction
 	nextDirection Direction
-	currSpeed     time.Duration
 	locations     *list.List
 	currDrawing   *imdraw.IMDraw
 	score         int
@@ -67,7 +65,7 @@ type Snake struct {
 	pixelsPerSec float64
 }
 
-func NewSnake(itemTracker tracker, edges Edges, speed time.Duration, squareSize float64, buffer float64, c color.Color) *Snake {
+func NewSnake(itemTracker tracker, edges Edges, speed float64, squareSize float64, buffer float64, c color.Color) *Snake {
 	e := edges
 	if edges.right < edges.left {
 		e.right = edges.left
@@ -89,7 +87,6 @@ func NewSnake(itemTracker tracker, edges Edges, speed time.Duration, squareSize 
 	}
 
 	s := &Snake{
-		currSpeed:        speed,
 		locations:        l,
 		item:             item,
 		edges:            e,
@@ -98,7 +95,7 @@ func NewSnake(itemTracker tracker, edges Edges, speed time.Duration, squareSize 
 		buffer:           buffer,
 		colorr:           c,
 		shutdown:         make(chan struct{}, 1),
-		pixelsPerSec:     20,
+		pixelsPerSec:     speed,
 	}
 	s.reset()
 	// s.updateDrawing()

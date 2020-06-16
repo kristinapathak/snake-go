@@ -7,4 +7,4 @@ board:
   buffer: 20
   borderWidth: 3
 
-snakeSpeed: 150ms
+snakeSpeed: 10

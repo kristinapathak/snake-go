@@ -16,7 +16,7 @@ import (
 
 type SnakeConfig struct {
 	Board      BoardConfig
-	SnakeSpeed time.Duration
+	SnakeSpeed float64
 }
 
 type BoardConfig struct {
