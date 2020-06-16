@@ -60,13 +60,13 @@ type Snake struct {
 	startingPosition location
 	squareSize       float64
 	buffer           float64
-	colorr           color.Color
+	colors           []color.Color
 	shutdown         chan struct{}
 
 	pixelsPerSec float64
 }
 
-func NewSnake(itemTracker tracker, edges Edges, speed float64, squareSize float64, buffer float64, c color.Color) *Snake {
+func NewSnake(itemTracker tracker, edges Edges, speed float64, squareSize float64, buffer float64, colors []color.Color) *Snake {
 	e := edges
 	if edges.right < edges.left {
 		e.right = edges.left
@@ -94,7 +94,7 @@ func NewSnake(itemTracker tracker, edges Edges, speed float64, squareSize float6
 		startingPosition: location{x: middleX, y: middleY},
 		squareSize:       squareSize,
 		buffer:           buffer,
-		colorr:           c,
+		colors:           colors,
 		shutdown:         make(chan struct{}, 1),
 		pixelsPerSec:     speed,
 	}
@@ -119,16 +119,25 @@ func (s *Snake) SetDirection(d Direction) {
 
 func (s *Snake) Paint() *imdraw.IMDraw {
 	newDrawing := imdraw.New(nil)
-	newDrawing.Color = s.colorr
 	newDrawing.EndShape = imdraw.SharpEndShape
 
-	e := s.locations.Front()
+	e := s.locations.Back()
+	i := 0
 	for e != nil {
 		l := e.Value.(point)
 
-		newDrawing.Push(pixel.Vec{X: s.buffer + l.X()*s.squareSize, Y: s.buffer + l.Y()*s.squareSize}, pixel.Vec{X: s.buffer + (l.X() * s.squareSize) + s.squareSize, Y: s.buffer + (l.Y() * s.squareSize) + s.squareSize})
-		newDrawing.Rectangle(0)
-		e = e.Next()
+		if i >= len(s.colors) {
+			i = 0
+		}
+		newDrawing.Color = s.colors[i]
+		// newDrawing.Push(pixel.Vec{X: s.buffer + l.X()*s.squareSize, Y: s.buffer + l.Y()*s.squareSize}, pixel.Vec{X: s.buffer + (l.X() * s.squareSize) + s.squareSize, Y: s.buffer + (l.Y() * s.squareSize) + s.squareSize})
+		newDrawing.Push(pixel.Vec{X: s.buffer + l.X()*s.squareSize + s.squareSize/2, Y: s.buffer + l.Y()*s.squareSize + s.squareSize/2})
+		newDrawing.Circle(s.squareSize/2, 0)
+		e = e.Prev()
+		if e != nil {
+			e = e.Prev()
+		}
+		i++
 	}
 	return newDrawing
 }

@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"image/color"
 	"os"
 	"time"
 
@@ -80,10 +81,11 @@ func run() {
 		top:    config.Board.NumSquaresHigh,
 	}
 	// set up items for the snake to eat
-	tracker := NewSingleTracker(es, config.Board.SquareSize, config.Board.Buffer, colornames.Greenyellow)
+	tracker := NewSingleTracker(es, config.Board.SquareSize, config.Board.Buffer, colornames.Indianred)
 
 	// set up the snake itself
-	snake := NewSnake(tracker, es, config.SnakeSpeed, config.Board.SquareSize, config.Board.Buffer, colornames.Darkmagenta)
+	colors := []color.Color{colornames.Darkmagenta, colornames.Lavender}
+	snake := NewSnake(tracker, es, config.SnakeSpeed, config.Board.SquareSize, config.Board.Buffer, colors)
 
 	g := Game{
 		playingBoard: playingBoard,
