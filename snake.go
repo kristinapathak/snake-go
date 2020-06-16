@@ -172,11 +172,12 @@ func (s *Snake) Tick(t float64, deltaT float64) {
 		newX = h.X() + s.pixelsPerSec*deltaT
 	}
 
+	threshold := 0.1
 	if s.nextDirection != None && s.nextDirection != s.currDirection {
 		xCheck := math.Mod(newX, s.squareSize)
 		yCheck := math.Mod(newY, s.squareSize)
 
-		if xCheck < 0.01 || (s.squareSize-xCheck) < 0.01 || yCheck < 0.01 || (s.squareSize-yCheck) < 0.01 {
+		if xCheck < threshold || (s.squareSize-xCheck) < threshold || yCheck < threshold || (s.squareSize-yCheck) < threshold {
 			s.lastDirection = s.currDirection
 			s.currDirection = s.nextDirection
 			s.nextDirection = None
