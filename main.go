@@ -69,12 +69,15 @@ func run() {
 
 	// give us a nice background
 	playingBoard := NewPlayingBoard(boardWidth, boardHeight, config.Board.Buffer, config.Board.BorderWidth)
+	if true {
+		drawGrid(playingBoard, config.Board.NumSquaresWide, config.Board.NumSquaresHigh, config.Board.Buffer, config.Board.SquareSize)
+	}
 
 	es := Edges{
 		left:   0,
-		right:  int(config.Board.NumSquaresWide),
+		right:  config.Board.NumSquaresWide,
 		bottom: 0,
-		top:    int(config.Board.NumSquaresHigh),
+		top:    config.Board.NumSquaresHigh,
 	}
 	// set up items for the snake to eat
 	tracker := NewSingleTracker(es, config.Board.SquareSize, config.Board.Buffer, colornames.Greenyellow)
@@ -116,6 +119,7 @@ func (g Game) Integrate(currentState interface{}, t float64, deltaT float64) int
 	if g.window.Pressed(pixelgl.KeyUp) {
 		snake.SetDirection(Up)
 	}
+	snake.Tick(t, deltaT)
 	return snake
 }
 
@@ -143,4 +147,25 @@ func NewPlayingBoard(boardWidth float64, boardHeight float64, buffer float64, bo
 	playingBoard.Rectangle(0)
 
 	return playingBoard
+}
+
+func drawGrid(playingBoard *imdraw.IMDraw, boardWidth float64, boardHeight float64, buffer float64, squareSize float64) {
+
+	playingBoard.Color = colornames.Black
+	playingBoard.EndShape = imdraw.RoundEndShape
+
+	for i := 0; i < int(boardWidth); i++ {
+		playingBoard.Push(pixel.V(buffer+float64(i)*squareSize, buffer), pixel.V(buffer+float64(i)*squareSize, buffer+(boardHeight*squareSize)))
+		playingBoard.Line(1)
+	}
+	for j := 0; j < int(boardHeight); j++ {
+		playingBoard.Push(pixel.V(buffer, buffer+(float64(j)*squareSize)), pixel.V(buffer+(boardWidth*squareSize), buffer+(float64(j)*squareSize)))
+		playingBoard.Line(1)
+	}
+
+	playingBoard.Color = colornames.Red
+	playingBoard.EndShape = imdraw.SharpEndShape
+	playingBoard.Push(pixel.V(0,0), pixel.V(squareSize, squareSize))
+	playingBoard.Rectangle(0.0)
+
 }

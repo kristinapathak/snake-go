@@ -2,8 +2,9 @@ package main
 
 import (
 	"container/list"
+	"fmt"
 	"image/color"
-	"sync"
+	"math"
 	"time"
 
 	"github.com/faiface/pixel"
@@ -21,39 +22,39 @@ const (
 )
 
 type point interface {
-	X() int
-	Y() int
+	X() float64
+	Y() float64
 }
 
 type location struct {
-	x int
-	y int
+	x float64
+	y float64
 }
 
-func (l location) X() int {
+func (l location) X() float64 {
 	return l.x
 }
 
-func (l location) Y() int {
+func (l location) Y() float64 {
 	return l.y
 }
 
 type Edges struct {
-	left   int
-	right  int
-	top    int
-	bottom int
+	left   float64
+	right  float64
+	top    float64
+	bottom float64
 }
 
 type Snake struct {
 	// these values are changed asynchronously and need a lock.
 	lastDirection Direction
 	currDirection Direction
+	nextDirection Direction
 	currSpeed     time.Duration
 	locations     *list.List
 	currDrawing   *imdraw.IMDraw
 	score         int
-	lock          sync.RWMutex
 
 	item             tracker
 	edges            Edges
@@ -62,6 +63,8 @@ type Snake struct {
 	buffer           float64
 	colorr           color.Color
 	shutdown         chan struct{}
+
+	pixelsPerSec float64
 }
 
 func NewSnake(itemTracker tracker, edges Edges, speed time.Duration, squareSize float64, buffer float64, c color.Color) *Snake {
@@ -75,8 +78,8 @@ func NewSnake(itemTracker tracker, edges Edges, speed time.Duration, squareSize 
 		e.bottom = edges.top
 	}
 
-	middleY := int((e.top-e.bottom)/2) + e.bottom
-	middleX := int((e.right-e.left)/2) + e.left
+	middleY := (e.top-e.bottom)/2.0 + e.bottom
+	middleX := (e.right-e.left)/2.0 + e.left
 
 	l := list.New()
 
@@ -95,99 +98,122 @@ func NewSnake(itemTracker tracker, edges Edges, speed time.Duration, squareSize 
 		buffer:           buffer,
 		colorr:           c,
 		shutdown:         make(chan struct{}, 1),
+		pixelsPerSec:     20,
 	}
 	s.reset()
-	s.updateDrawing()
-	go s.move()
+	// s.updateDrawing()
+	s.currDirection = Left
+	// go s.move()
 	return s
 }
 
 func (s *Snake) SetDirection(d Direction) {
-	s.lock.Lock()
-	defer s.lock.Unlock()
 	// don't let the snake do a 180 turn
-	if s.lastDirection == Up && d == Down ||
-		s.lastDirection == Down && d == Up ||
-		s.lastDirection == Left && d == Right ||
-		s.lastDirection == Right && d == Left {
+	if s.currDirection == Up && d == Down ||
+		s.currDirection == Down && d == Up ||
+		s.currDirection == Left && d == Right ||
+		s.currDirection == Right && d == Left {
+		fmt.Println("Can't do")
 		return
 	}
-	s.currDirection = d
+	s.nextDirection = d
 }
 
 func (s *Snake) Paint() *imdraw.IMDraw {
-	s.lock.RLock()
-	defer s.lock.RUnlock()
-	return s.currDrawing
+	newDrawing := imdraw.New(nil)
+	newDrawing.Color = s.colorr
+	newDrawing.EndShape = imdraw.SharpEndShape
+
+	e := s.locations.Front()
+	for e != nil {
+		l := e.Value.(point)
+
+		newDrawing.Push(pixel.Vec{X: s.buffer + l.X()*s.squareSize, Y: s.buffer + l.Y()*s.squareSize}, pixel.Vec{X: s.buffer + (l.X()*s.squareSize) + s.squareSize, Y: s.buffer + (l.Y()*s.squareSize) + s.squareSize})
+		newDrawing.Rectangle(0)
+		e = e.Next()
+	}
+	return newDrawing
 }
 
 func (s *Snake) Stop() {
 	close(s.shutdown)
 }
 
-func (s *Snake) move() {
-	s.lock.RLock()
-	ticker := time.NewTicker(s.currSpeed)
-	s.lock.RUnlock()
-	for {
-		select {
-		case <-ticker.C:
-			moved := s.updateLocations()
-			if moved {
-				s.updateDrawing()
-			}
-		case <-s.shutdown:
-			return
-		}
-	}
+// func (s *Snake) move() {
+// 	s.lock.RLock()
+// 	ticker := time.NewTicker(s.currSpeed)
+// 	s.lock.RUnlock()
+// 	for {
+// 		select {
+// 		case <-ticker.C:
+// 			moved := s.updateLocations()
+// 			if moved {
+// 				s.updateDrawing()
+// 			}
+// 		case <-s.shutdown:
+// 			return
+// 		}
+// 	}
+// }
 
-}
-
-func (s *Snake) updateLocations() bool {
-	s.lock.RLock()
-	if s.currDirection == None {
-		s.lock.RUnlock()
-		return false
-	}
-
-	// get new spot on the board based on direction
+func (s *Snake) Tick(t float64, deltaT float64) {
 	h := s.locations.Front().Value.(point)
 	newX := h.X()
 	newY := h.Y()
-	switch s.currDirection {
-	case Up:
-		newY++
-	case Down:
-		newY--
-	case Left:
-		newX--
-	case Right:
-		newX++
+
+	// TODO:// Check if movemend direction should change
+	// roundX := math.Round(newX)
+	// roundY := math.Round(newY)
+	xCheck := math.Mod(newX, s.squareSize)
+	yCheck := math.Mod(newY, s.squareSize)
+	if xCheck < 0.01 {
+		if s.nextDirection != None {
+			s.currDirection = s.nextDirection
+			s.nextDirection = None
+			newX = math.Round(newX)
+		}
+
+	} else if yCheck < 0.01 {
+		// fmt.Printf("Update Direction Tick X: %f Y: %f -> DeltaT %f | RoundX: %f RoundY: %f SquareSize: %f \n", h.X(), h.Y(), deltaT, xCheck, yCheck, s.squareSize)
+		if s.nextDirection != None {
+			s.currDirection = s.nextDirection
+			s.nextDirection = None
+			newX = math.Round(newY)
+		}
+
+	} else {
+		// fmt.Printf("Tick X: %f Y: %f -> DeltaT %f | RoundX: %f RoundY: %f SquareSize: %f \n", h.X(), h.Y(), deltaT, xCheck, yCheck, s.squareSize)
 	}
 
-	s.lock.RUnlock()
-	s.lock.Lock()
-	defer s.lock.Unlock()
+	switch s.currDirection {
+	case Up:
+		newY = h.Y() + s.pixelsPerSec*deltaT
+	case Down:
+		newY = h.Y() - s.pixelsPerSec*deltaT
+	case Left:
+		newX = h.X() - s.pixelsPerSec*deltaT
+	case Right:
+		newX = h.X() + s.pixelsPerSec*deltaT
+	}
 
 	// check that the new spot won't be outside of the game board
 	if newY < s.edges.bottom || newY >= s.edges.top || newX < s.edges.left || newX >= s.edges.right {
 		s.reset()
-		return true
+		fmt.Println("died")
+		return
 	}
 
-	// check for collisions with itself
-	e := s.locations.Front()
-	for e != nil {
-		l := e.Value.(point)
-		if l.X() == newX && l.Y() == newY {
-			s.reset()
-			return true
-		}
-		e = e.Next()
-	}
-
-	// set current direction to last direction
-	s.lastDirection = s.currDirection
+	// TODO:// check for collisions with itself
+	// e := s.locations.Front()
+	// for e != nil {
+	// 	l := e.Value.(point)
+	// 	if l.X() == newX && l.Y() == newY {
+	// 		s.reset()
+	// 		fmt.Println("killed self")
+	// 		return
+	// 	}
+	// 	e = e.Next()
+	// }
 
 	// add new item to the list
 	newSquare := location{x: newX, y: newY}
@@ -202,36 +228,34 @@ func (s *Snake) updateLocations() bool {
 		// remove the last item from the list
 		s.locations.Remove(s.locations.Back())
 	}
-
-	return true
 }
 
 // game is lost, bring everything back to the beginning
 func (s *Snake) reset() {
 	s.lastDirection = None
-	s.currDirection = None
+	s.currDirection = Left
 	s.locations.Init()
 	s.locations.PushFront(s.startingPosition)
 	s.score = 0
 }
 
-func (s *Snake) updateDrawing() {
-	s.lock.RLock()
-	newDrawing := imdraw.New(nil)
-	newDrawing.Color = s.colorr
-	newDrawing.EndShape = imdraw.SharpEndShape
-
-	e := s.locations.Front()
-	for e != nil {
-		l := e.Value.(point)
-		floatX := float64(l.X())
-		floatY := float64(l.Y())
-		newDrawing.Push(pixel.Vec{X: s.buffer + floatX*s.squareSize, Y: s.buffer + floatY*s.squareSize}, pixel.Vec{X: s.buffer + (floatX+1)*s.squareSize, Y: s.buffer + (floatY+1)*s.squareSize})
-		newDrawing.Rectangle(0)
-		e = e.Next()
-	}
-	s.lock.RUnlock()
-	s.lock.Lock()
-	s.currDrawing = newDrawing
-	s.lock.Unlock()
-}
+// func (s *Snake) updateDrawing() {
+// 	s.lock.RLock()
+// 	newDrawing := imdraw.New(nil)
+// 	newDrawing.Color = s.colorr
+// 	newDrawing.EndShape = imdraw.SharpEndShape
+//
+// 	e := s.locations.Front()
+// 	for e != nil {
+// 		l := e.Value.(point)
+// 		floatX := float64(l.X())
+// 		floatY := float64(l.Y())
+// 		newDrawing.Push(pixel.Vec{X: s.buffer + floatX*s.squareSize, Y: s.buffer + floatY*s.squareSize}, pixel.Vec{X: s.buffer + (floatX+1)*s.squareSize, Y: s.buffer + (floatY+1)*s.squareSize})
+// 		newDrawing.Rectangle(0)
+// 		e = e.Next()
+// 	}
+// 	s.lock.RUnlock()
+// 	s.lock.Lock()
+// 	s.currDrawing = newDrawing
+// 	s.lock.Unlock()
+// }
