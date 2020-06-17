@@ -53,15 +53,15 @@ func (c Colors) GetColors() []color.Color {
 	case Grey:
 		return []color.Color{colornames.Darkgrey, colornames.Lightgray}
 	case White:
-		return []color.Color{colornames.Whitesmoke, colornames.White}
+		return []color.Color{colornames.Navajowhite, colornames.White}
 	case Purple:
 		return []color.Color{colornames.Darkmagenta, colornames.Lavender}
 	case Blue:
-		return []color.Color{colornames.Darkslateblue, colornames.Aliceblue}
+		return []color.Color{colornames.Darkblue, colornames.Deepskyblue}
 	case Green:
-		return []color.Color{colornames.Darkolivegreen, colornames.Mintcream}
+		return []color.Color{colornames.Darkolivegreen, colornames.Palegreen}
 	case Yellow:
-		return []color.Color{colornames.Darkgoldenrod, colornames.Lemonchiffon}
+		return []color.Color{colornames.Darkgoldenrod, colornames.Gold}
 	case Orange:
 		return []color.Color{colornames.Darkorange, colornames.Peachpuff}
 	case Red:
