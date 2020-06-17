@@ -16,3 +16,5 @@ snake:
   framesToGrow: 5
   threshold: 5.0
   color: rainbow
+  style: striped
+  taperTo: 4

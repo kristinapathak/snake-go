@@ -2,10 +2,6 @@ package main
 
 import (
 	"fmt"
-	"github.com/faiface/pixel/text"
-	"github.com/kristinaspring/snake-go/gameloop"
-	"golang.org/x/image/font"
-	"golang.org/x/image/font/gofont/goregular"
 	"os"
 	"time"
 	"unicode"
@@ -13,9 +9,13 @@ import (
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/imdraw"
 	"github.com/faiface/pixel/pixelgl"
+	"github.com/faiface/pixel/text"
 	"github.com/golang/freetype/truetype"
+	"github.com/kristinaspring/snake-go/gameloop"
 	"github.com/spf13/viper"
 	"golang.org/x/image/colornames"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/gofont/goregular"
 )
 
 type ViperConfig struct {
@@ -25,6 +25,8 @@ type ViperConfig struct {
 
 type SnakeViperConfig struct {
 	Color          string
+	Style          string
+	TaperTo        float64
 	Speed          float64
 	StartingFrames int
 	FramesToGrow   int
@@ -101,7 +103,8 @@ func run() {
 		Edges:          es,
 		SquareSize:     config.Board.SquareSize,
 		Buffer:         config.Board.Buffer,
-		Colors:         GetEnum(config.Snake.Color).GetColors(),
+		Colors:         GetColor(config.Snake.Color).GetColors(GetStyle(config.Snake.Style)),
+		TaperTo:        config.Snake.TaperTo,
 		PixelsPerSec:   config.Snake.Speed,
 		StartingFrames: config.Snake.StartingFrames,
 		FramesToGrow:   config.Snake.FramesToGrow,
