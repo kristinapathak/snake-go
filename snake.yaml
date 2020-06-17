@@ -7,6 +7,8 @@ board:
   buffer: 20
   borderWidth: 3
   showGrid: false
+  showCounters: true
+  tickRate: 60
 
 snake:
   speed: 10

@@ -2,14 +2,18 @@ package main
 
 import (
 	"fmt"
+	"github.com/faiface/pixel/text"
+	"github.com/kristinaspring/snake-go/gameloop"
+	"golang.org/x/image/font"
+	"golang.org/x/image/font/gofont/goregular"
 	"os"
 	"time"
-
-	"github.com/kristinaspring/snake-go/gameloop"
+	"unicode"
 
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/imdraw"
 	"github.com/faiface/pixel/pixelgl"
+	"github.com/golang/freetype/truetype"
 	"github.com/spf13/viper"
 	"golang.org/x/image/colornames"
 )
@@ -34,6 +38,8 @@ type BoardConfig struct {
 	Buffer         float64
 	BorderWidth    float64
 	ShowGrid       bool
+	ShowCounters   bool
+	TickRate       int
 }
 
 func main() {
@@ -65,7 +71,7 @@ func run() {
 	cfg := pixelgl.WindowConfig{
 		Title:  "Snake!",
 		Bounds: pixel.R(0, 0, windowWidth, windowHeight),
-		VSync:  true,
+		VSync:  false,
 	}
 
 	// Start it up!
@@ -104,12 +110,18 @@ func run() {
 
 	snake := NewSnake(tracker, c)
 
-	g := Game{
+	g := &Game{
 		playingBoard: playingBoard,
 		tracker:      tracker,
 		window:       win,
 	}
-	stopChan := gameloop.StartLoop(g, time.Second/60, snake)
+	if config.Board.ShowCounters {
+		g.txt = text.New(pixel.V(1, 1), text.NewAtlas(
+			ttfFromBytesMust(goregular.TTF, config.Board.Buffer),
+			text.ASCII, text.RangeTable(unicode.Latin),
+		))
+	}
+	stopChan := gameloop.StartLoop(g, time.Second/time.Duration(config.Board.TickRate), snake)
 
 	// keep running and updating things until the window is closed.
 	for !win.Closed() {
@@ -122,9 +134,13 @@ type Game struct {
 	playingBoard *imdraw.IMDraw
 	tracker      tracker
 	window       *pixelgl.Window
+	measurement  float64
+	frameCount   int64
+	updateCount  int64
+	txt          *text.Text
 }
 
-func (g Game) Integrate(currentState interface{}, t float64, deltaT float64) interface{} {
+func (g *Game) Integrate(currentState interface{}, t float64, deltaT float64) interface{} {
 	snake := currentState.(*Snake)
 	if g.window.Pressed(pixelgl.KeyLeft) {
 		snake.SetDirection(Left)
@@ -138,17 +154,37 @@ func (g Game) Integrate(currentState interface{}, t float64, deltaT float64) int
 	if g.window.Pressed(pixelgl.KeyUp) {
 		snake.SetDirection(Up)
 	}
+	if g.txt != nil {
+		g.updateCount++
+	}
 	snake.Tick(t, deltaT)
 	return snake
 }
+func ttfFromBytesMust(b []byte, size float64) font.Face {
+	ttf, err := truetype.Parse(b)
+	if err != nil {
+		panic(err)
+	}
+	return truetype.NewFace(ttf, &truetype.Options{
+		Size:              size,
+		GlyphCacheEntries: 1,
+	})
+}
 
-func (g Game) Render(state interface{}, t float64, alpha float64) {
+func (g *Game) Render(state interface{}, t float64, alpha float64) {
 	g.window.Clear(colornames.Mediumaquamarine)
+
 	g.playingBoard.Draw(g.window)
+
 	g.tracker.Paint().Draw(g.window)
 	snake := state.(*Snake)
 	snake.Paint().Draw(g.window)
-
+	if g.txt != nil {
+		g.frameCount++
+		g.txt.Clear()
+		g.txt.WriteString(fmt.Sprintf("FPS :%4.2f, UPS: %4.2f", float64(g.frameCount)/t, float64(g.updateCount)/t))
+		g.txt.Draw(g.window, pixel.IM)
+	}
 	g.window.Update()
 }
 
