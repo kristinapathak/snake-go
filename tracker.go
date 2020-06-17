@@ -98,15 +98,15 @@ func (s *singleTracker) findNewLocation(locations *list.List) location {
 	fmt.Printf("GridWdith Square X: %f Y: %f\n", gridX, gridY)
 	if locations == nil || locations.Len() < 1 {
 		return location{
-			x: float64(s.randomGen.Intn(int(gridX)-1) + 1),
-			y: float64(s.randomGen.Intn(int(gridY)-1) + 1),
+			x: float64(s.randomGen.Intn(int(gridX)-1) + s.edges.left),
+			y: float64(s.randomGen.Intn(int(gridY)-1) + s.edges.bottom),
 		}
 	}
 	for {
 
 		newLocation := location{
-			x: float64(s.randomGen.Intn(int(gridX)-1) + 1),
-			y: float64(s.randomGen.Intn(int(gridY)-1) + 1),
+			x: float64(s.randomGen.Intn(int(gridX)-1) + s.edges.left),
+			y: float64(s.randomGen.Intn(int(gridY)-1) + s.edges.bottom),
 		}
 		if !pointInList(newLocation, locations) {
 			return newLocation

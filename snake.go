@@ -48,7 +48,7 @@ func (l location) Y() float64 {
 }
 
 func (l location) Equal(other location) bool {
-	return l.x == other.x && l.y == other.y
+	return int(l.x) == int(other.x) && int(l.y) == int(other.y)
 }
 
 type Edges struct {
