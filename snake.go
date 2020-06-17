@@ -57,12 +57,13 @@ type Edges struct {
 type Snake struct {
 	config SnakeConfig
 
-	currDirection Direction
-	nextDirection Direction
-	locations     *list.List
-	currDrawing   *imdraw.IMDraw
-	grow          int
-	score         int
+	currDirection         Direction
+	currDirectionStartLoc location
+	nextDirection         Direction
+	locations             *list.List
+	currDrawing           *imdraw.IMDraw
+	grow                  int
+	score                 int
 
 	item     tracker
 	shutdown chan struct{}
@@ -218,11 +219,16 @@ func (s *Snake) Tick(t float64, deltaT float64) {
 		xCheck := math.Mod(newX, ss)
 		yCheck := math.Mod(newY, ss)
 
-		if xCheck < threshold || (ss-xCheck) < threshold || yCheck < threshold || (ss-yCheck) < threshold {
+		xRound := math.Round(newX)
+		yRound := math.Round(newY)
+		// switch directions if we're ready
+		if (xCheck < threshold || (ss-xCheck) < threshold || yCheck < threshold || (ss-yCheck) < threshold) &&
+			(math.Abs(xRound-s.currDirectionStartLoc.X()) >= 1 || math.Abs(yRound-s.currDirectionStartLoc.Y()) >= 1) {
 			s.currDirection = s.nextDirection
 			s.nextDirection = None
-			newX = math.Round(newX)
-			newY = math.Round(newY)
+			newX = xRound
+			newY = yRound
+			s.currDirectionStartLoc = location{x: newX, y: newY}
 		}
 	}
 
