@@ -114,6 +114,8 @@ func run() {
 		playingBoard: playingBoard,
 		tracker:      tracker,
 		window:       win,
+		frameCount:   NewCounter(100),
+		updateCount:  NewCounter(100),
 	}
 	if config.Board.ShowCounters {
 		g.txt = text.New(pixel.V(1, 1), text.NewAtlas(
@@ -135,8 +137,8 @@ type Game struct {
 	tracker      tracker
 	window       *pixelgl.Window
 	measurement  float64
-	frameCount   int64
-	updateCount  int64
+	frameCount   *Counter
+	updateCount  *Counter
 	txt          *text.Text
 }
 
@@ -155,7 +157,7 @@ func (g *Game) Integrate(currentState interface{}, t float64, deltaT float64) in
 		snake.SetDirection(Up)
 	}
 	if g.txt != nil {
-		g.updateCount++
+		g.updateCount.Tick(t)
 	}
 	snake.Tick(t, deltaT)
 	return snake
@@ -180,12 +182,49 @@ func (g *Game) Render(state interface{}, t float64, alpha float64) {
 	snake := state.(*Snake)
 	snake.Paint().Draw(g.window)
 	if g.txt != nil {
-		g.frameCount++
+		g.frameCount.Tick(t)
 		g.txt.Clear()
-		g.txt.WriteString(fmt.Sprintf("FPS :%4.2f, UPS: %4.2f", float64(g.frameCount)/t, float64(g.updateCount)/t))
+		g.txt.WriteString(fmt.Sprintf("FPS :%4.2f, UPS: %4.2f", g.frameCount.GetRate(), g.updateCount.GetRate()))
 		g.txt.Draw(g.window, pixel.IM)
 	}
 	g.window.Update()
+}
+
+type Counter struct {
+	maxSamples int
+	tickIndex  int
+	tickSum    float64
+	tickList   []float64
+	lastTime   float64
+
+	rate float64
+}
+
+func NewCounter(maxSamples int) *Counter {
+	return &Counter{
+		maxSamples: maxSamples,
+		tickList:   make([]float64, maxSamples),
+	}
+}
+
+func (c *Counter) Tick(currentT float64) float64 {
+	delta := currentT - c.lastTime
+	c.lastTime = currentT
+
+	c.tickSum -= c.tickList[c.tickIndex]
+	c.tickSum += delta
+	c.tickList[c.tickIndex] = delta
+	// c.tickIndex++
+	// if c.tickIndex >= c.maxSamples {
+	// 	c.tickIndex = 0
+	// }
+	c.tickIndex = (c.tickIndex + 1) % c.maxSamples
+	c.rate = float64(c.maxSamples) / c.tickSum
+	return c.rate
+}
+
+func (c *Counter) GetRate() float64 {
+	return c.rate
 }
 
 // NewPlayingBoard highlights the playing area with a background and border.
