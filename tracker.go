@@ -6,6 +6,7 @@ import (
 	"image/color"
 	"math/rand"
 	"sync"
+	"time"
 
 	"github.com/faiface/pixel"
 	"github.com/faiface/pixel/imdraw"
@@ -30,6 +31,8 @@ func (d defaultTracker) Paint() *imdraw.IMDraw {
 }
 
 type singleTracker struct {
+	randomGen *rand.Rand
+
 	currLocation location
 	currDrawing  *imdraw.IMDraw
 	lock         sync.RWMutex
@@ -72,6 +75,8 @@ func (s *singleTracker) At(l location) bool {
 }
 
 func (s *singleTracker) Reset(l *list.List) {
+	s1 := rand.NewSource(time.Now().UnixNano())
+	s.randomGen = rand.New(s1)
 	loc := s.findNewLocation(l)
 	s.lock.Lock()
 	s.currLocation = loc
@@ -85,18 +90,39 @@ func (s *singleTracker) Paint() *imdraw.IMDraw {
 	return s.currDrawing
 }
 
-func (s *singleTracker) findNewLocation(_ *list.List) location {
+func (s *singleTracker) findNewLocation(locations *list.List) location {
 	gridX := (s.edges.right - s.edges.left)
 	gridY := (s.edges.top - s.edges.bottom)
 	// TODO: use the snake location to make sure we don't pick a spot where the
 	// snake is.
 	fmt.Printf("GridWdith Square X: %f Y: %f\n", gridX, gridY)
-
-	// TODO: Make this random.
-	return location{
-		x: float64(rand.Intn(int(gridX)-1) + 1),
-		y: float64(rand.Intn(int(gridY)-1) + 1),
+	if locations == nil || locations.Len() < 1 {
+		return location{
+			x: float64(s.randomGen.Intn(int(gridX)-1)) + s.edges.left,
+			y: float64(s.randomGen.Intn(int(gridY)-1)) + s.edges.bottom,
+		}
 	}
+	for {
+
+		newLocation := location{
+			x: float64(s.randomGen.Intn(int(gridX)-1)) + s.edges.left,
+			y: float64(s.randomGen.Intn(int(gridY)-1)) + s.edges.bottom,
+		}
+		if !pointInList(newLocation, locations) {
+			return newLocation
+		}
+	}
+}
+
+func pointInList(point location, locations *list.List) bool {
+	root := locations.Front()
+	for root != nil {
+		if root.Value.(location).Equal(point) {
+			return true
+		}
+		root = root.Next()
+	}
+	return false
 }
 
 func (s *singleTracker) updateDrawing() {
