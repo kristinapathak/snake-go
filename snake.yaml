@@ -8,4 +8,9 @@ board:
   borderWidth: 3
   showGrid: false
 
-snakeSpeed: 10
+snake:
+  speed: 10
+  startingFrames: 15
+  framesToGrow: 5
+  threshold: 5.0
+  color: rainbow

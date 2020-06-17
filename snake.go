@@ -20,6 +20,15 @@ const (
 	Left
 )
 
+const (
+	DefaultSquareSize      = 10
+	DefaultBuffer          = 10
+	DefaultPixelsPerSecond = 10
+	DefaultStartingFrames  = 12
+	DefaultFramesToGrow    = 4
+	DefaultThreshold       = 5.0
+)
+
 type point interface {
 	X() float64
 	Y() float64
@@ -46,8 +55,8 @@ type Edges struct {
 }
 
 type Snake struct {
-	// these values are changed asynchronously and need a lock.
-	lastDirection Direction
+	config SnakeConfig
+
 	currDirection Direction
 	nextDirection Direction
 	locations     *list.List
@@ -55,30 +64,24 @@ type Snake struct {
 	grow          int
 	score         int
 
-	item             tracker
-	edges            Edges
-	startingPosition location
-	squareSize       float64
-	buffer           float64
-	colors           []color.Color
-	shutdown         chan struct{}
-
-	pixelsPerSec float64
+	item     tracker
+	shutdown chan struct{}
 }
 
-func NewSnake(itemTracker tracker, edges Edges, speed float64, squareSize float64, buffer float64, colors []color.Color) *Snake {
-	e := edges
-	if edges.right < edges.left {
-		e.right = edges.left
-		e.left = edges.right
-	}
-	if edges.top < edges.bottom {
-		e.top = edges.bottom
-		e.bottom = edges.top
-	}
+type SnakeConfig struct {
+	Edges            Edges
+	StartingPosition point
+	SquareSize       float64
+	Buffer           float64
+	Colors           []color.Color
+	PixelsPerSec     float64
+	StartingFrames   int
+	FramesToGrow     int
+	Threshold        float64
+}
 
-	middleY := (e.top-e.bottom)/2.0 + e.bottom
-	middleX := (e.right-e.left)/2.0 + e.left
+func NewSnake(itemTracker tracker, config SnakeConfig) *Snake {
+	c := validateConfig(config)
 
 	l := list.New()
 
@@ -88,21 +91,63 @@ func NewSnake(itemTracker tracker, edges Edges, speed float64, squareSize float6
 	}
 
 	s := &Snake{
-		locations:        l,
-		item:             item,
-		edges:            e,
-		startingPosition: location{x: middleX, y: middleY},
-		squareSize:       squareSize,
-		buffer:           buffer,
-		colors:           colors,
-		shutdown:         make(chan struct{}, 1),
-		pixelsPerSec:     speed,
+		config:    c,
+		locations: l,
+		item:      item,
+		shutdown:  make(chan struct{}, 1),
 	}
 	s.reset()
-	// s.updateDrawing()
-	s.currDirection = None
-	// go s.move()
 	return s
+}
+
+func validateConfig(config SnakeConfig) SnakeConfig {
+	c := config
+	e := c.Edges
+	if c.Edges.right < c.Edges.left {
+		e.right = c.Edges.left
+		e.left = c.Edges.right
+	}
+	if c.Edges.top < c.Edges.bottom {
+		e.top = c.Edges.bottom
+		e.bottom = c.Edges.top
+	}
+	c.Edges = e
+
+	if c.StartingPosition == nil || c.StartingPosition.X() < 0 || c.StartingPosition.Y() < 0 {
+		middleY := (e.top-e.bottom)/2.0 + e.bottom
+		middleX := (e.right-e.left)/2.0 + e.left
+		c.StartingPosition = location{x: middleX, y: middleY}
+	}
+
+	if c.SquareSize <= 0 {
+		c.SquareSize = DefaultSquareSize
+	}
+
+	if c.Buffer <= 0 {
+		c.Buffer = DefaultBuffer
+	}
+
+	if c.Colors == nil || len(c.Colors) == 0 {
+		c.Colors = []color.Color{color.RGBA{0x00, 0x00, 0x00, 0xff}}
+	}
+
+	if c.PixelsPerSec <= 0 {
+		c.PixelsPerSec = DefaultPixelsPerSecond
+	}
+
+	if c.StartingFrames <= 0 {
+		c.StartingFrames = DefaultStartingFrames
+	}
+
+	if c.FramesToGrow < 0 {
+		c.FramesToGrow = DefaultFramesToGrow
+	}
+
+	if c.Threshold <= 0 {
+		c.Threshold = DefaultThreshold
+	}
+
+	return c
 }
 
 func (s *Snake) SetDirection(d Direction) {
@@ -121,18 +166,21 @@ func (s *Snake) Paint() *imdraw.IMDraw {
 	newDrawing := imdraw.New(nil)
 	newDrawing.EndShape = imdraw.SharpEndShape
 
+	ss := s.config.SquareSize
+	b := s.config.Buffer
+
 	e := s.locations.Back()
 	i := 0
 	for e != nil {
 		l := e.Value.(point)
 
-		if i >= len(s.colors) {
+		if i >= len(s.config.Colors) {
 			i = 0
 		}
-		newDrawing.Color = s.colors[i]
+		newDrawing.Color = s.config.Colors[i]
 		// newDrawing.Push(pixel.Vec{X: s.buffer + l.X()*s.squareSize, Y: s.buffer + l.Y()*s.squareSize}, pixel.Vec{X: s.buffer + (l.X() * s.squareSize) + s.squareSize, Y: s.buffer + (l.Y() * s.squareSize) + s.squareSize})
-		newDrawing.Push(pixel.Vec{X: s.buffer + l.X()*s.squareSize + s.squareSize/2, Y: s.buffer + l.Y()*s.squareSize + s.squareSize/2})
-		newDrawing.Circle(s.squareSize/2, 0)
+		newDrawing.Push(pixel.Vec{X: b + l.X()*ss + ss/2, Y: b + l.Y()*ss + ss/2})
+		newDrawing.Circle(ss/2, 0)
 		e = e.Prev()
 		if e != nil {
 			e = e.Prev()
@@ -146,46 +194,31 @@ func (s *Snake) Stop() {
 	close(s.shutdown)
 }
 
-// func (s *Snake) move() {
-// 	s.lock.RLock()
-// 	ticker := time.NewTicker(s.currSpeed)
-// 	s.lock.RUnlock()
-// 	for {
-// 		select {
-// 		case <-ticker.C:
-// 			moved := s.updateLocations()
-// 			if moved {
-// 				s.updateDrawing()
-// 			}
-// 		case <-s.shutdown:
-// 			return
-// 		}
-// 	}
-// }
-
 func (s *Snake) Tick(t float64, deltaT float64) {
 	h := s.locations.Front().Value.(point)
 	newX := h.X()
 	newY := h.Y()
 
+	pps := s.config.PixelsPerSec
+
 	switch s.currDirection {
 	case Up:
-		newY = h.Y() + s.pixelsPerSec*deltaT
+		newY = h.Y() + pps*deltaT
 	case Down:
-		newY = h.Y() - s.pixelsPerSec*deltaT
+		newY = h.Y() - pps*deltaT
 	case Left:
-		newX = h.X() - s.pixelsPerSec*deltaT
+		newX = h.X() - pps*deltaT
 	case Right:
-		newX = h.X() + s.pixelsPerSec*deltaT
+		newX = h.X() + pps*deltaT
 	}
 
-	threshold := 5.0
+	threshold := s.config.Threshold
 	if s.nextDirection != None && s.nextDirection != s.currDirection {
-		xCheck := math.Mod(newX, s.squareSize)
-		yCheck := math.Mod(newY, s.squareSize)
+		ss := s.config.SquareSize
+		xCheck := math.Mod(newX, ss)
+		yCheck := math.Mod(newY, ss)
 
-		if xCheck < threshold || (s.squareSize-xCheck) < threshold || yCheck < threshold || (s.squareSize-yCheck) < threshold {
-			s.lastDirection = s.currDirection
+		if xCheck < threshold || (ss-xCheck) < threshold || yCheck < threshold || (ss-yCheck) < threshold {
 			s.currDirection = s.nextDirection
 			s.nextDirection = None
 			newX = math.Round(newX)
@@ -194,7 +227,8 @@ func (s *Snake) Tick(t float64, deltaT float64) {
 	}
 
 	// check that the new spot won't be outside of the game board
-	if newY < s.edges.bottom || newY+1 >= s.edges.top || newX < s.edges.left || newX+1 >= s.edges.right {
+	edges := s.config.Edges
+	if newY < edges.bottom || newY+1 >= edges.top || newX < edges.left || newX+1 >= edges.right {
 		s.reset()
 		return
 	}
@@ -219,7 +253,7 @@ func (s *Snake) Tick(t float64, deltaT float64) {
 	// list.
 	if s.item.At(newSquare) {
 		s.item.Reset(s.locations)
-		s.grow += 5
+		s.grow += s.config.FramesToGrow
 		s.score++
 	}
 
@@ -234,32 +268,10 @@ func (s *Snake) Tick(t float64, deltaT float64) {
 
 // game is lost, bring everything back to the beginning
 func (s *Snake) reset() {
-	s.lastDirection = None
 	s.currDirection = None
 	s.nextDirection = None
 	s.locations.Init()
-	s.locations.PushFront(s.startingPosition)
-	s.grow = 15
+	s.locations.PushFront(s.config.StartingPosition)
+	s.grow = s.config.StartingFrames
 	s.score = 0
 }
-
-// func (s *Snake) updateDrawing() {
-// 	s.lock.RLock()
-// 	newDrawing := imdraw.New(nil)
-// 	newDrawing.Color = s.colorr
-// 	newDrawing.EndShape = imdraw.SharpEndShape
-//
-// 	e := s.locations.Front()
-// 	for e != nil {
-// 		l := e.Value.(point)
-// 		floatX := float64(l.X())
-// 		floatY := float64(l.Y())
-// 		newDrawing.Push(pixel.Vec{X: s.buffer + floatX*s.squareSize, Y: s.buffer + floatY*s.squareSize}, pixel.Vec{X: s.buffer + (floatX+1)*s.squareSize, Y: s.buffer + (floatY+1)*s.squareSize})
-// 		newDrawing.Rectangle(0)
-// 		e = e.Next()
-// 	}
-// 	s.lock.RUnlock()
-// 	s.lock.Lock()
-// 	s.currDrawing = newDrawing
-// 	s.lock.Unlock()
-// }
