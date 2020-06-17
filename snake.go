@@ -77,6 +77,7 @@ type SnakeConfig struct {
 	Edges            Edges
 	StartingPosition point
 	SquareSize       float64
+	TaperTo          float64
 	Buffer           float64
 	Colors           []color.Color
 	PixelsPerSec     float64
@@ -174,23 +175,30 @@ func (s *Snake) Paint() *imdraw.IMDraw {
 	ss := s.config.SquareSize
 	b := s.config.Buffer
 
+	sLen := float64(s.locations.Len())
+
 	e := s.locations.Back()
-	i := 0
+	i := int(math.Mod(math.Round(sLen/2), float64(len(s.config.Colors))))
+	r := s.config.TaperTo / 2.0
+	rDelta := (s.config.SquareSize - s.config.TaperTo) / sLen
 	for e != nil {
 		l := e.Value.(point)
 
-		if i >= len(s.config.Colors) {
-			i = 0
+		if i < 0 {
+			i = len(s.config.Colors) - 1
 		}
 		newDrawing.Color = s.config.Colors[i]
 		// newDrawing.Push(pixel.Vec{X: s.buffer + l.X()*s.squareSize, Y: s.buffer + l.Y()*s.squareSize}, pixel.Vec{X: s.buffer + (l.X() * s.squareSize) + s.squareSize, Y: s.buffer + (l.Y() * s.squareSize) + s.squareSize})
 		newDrawing.Push(pixel.Vec{X: b + l.X()*ss + ss/2, Y: b + l.Y()*ss + ss/2})
-		newDrawing.Circle(ss/2, 0)
+		newDrawing.Circle(r, 0)
 		e = e.Prev()
 		if e != nil {
 			e = e.Prev()
+		} else {
+			r -= rDelta / 2
 		}
-		i++
+		r += rDelta
+		i--
 	}
 	return newDrawing
 }
