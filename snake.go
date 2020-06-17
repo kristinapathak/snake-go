@@ -233,17 +233,28 @@ func (s *Snake) Tick(t float64, deltaT float64) {
 		return
 	}
 
-	// TODO:// check for collisions with itself
-	// e := s.locations.Front()
-	// for e != nil {
-	// 	l := e.Value.(point)
-	// 	if l.X() == newX && l.Y() == newY {
-	// 		s.reset()
-	// 		fmt.Println("killed self")
-	// 		return
-	// 	}
-	// 	e = e.Next()
-	// }
+	// if we're currently going nowhere, we're done here
+	if s.currDirection == None {
+		return
+	}
+
+	// check for collisions with itself
+	e := s.locations.Front()
+	// skip the first few, those will be too close
+	for i := 0; i < 5; i++ {
+		if e != nil {
+			e = e.Next()
+		}
+	}
+	for e != nil {
+		l := e.Value.(point)
+		if math.Abs(l.X()-newX) < 0.3 && math.Abs(l.Y()-newY) < 0.3 {
+			s.reset()
+			fmt.Println("killed self")
+			return
+		}
+		e = e.Next()
+	}
 
 	// add new item to the list
 	newSquare := location{x: newX, y: newY}
