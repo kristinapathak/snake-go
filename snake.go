@@ -232,7 +232,7 @@ func (s *Snake) Tick(t float64, deltaT float64) {
 
 	// check that the new spot won't be outside of the game board
 	edges := s.config.Edges
-	if newY < edges.bottom || newY+1 >= edges.top || newX < edges.left || newX+1 >= edges.right {
+	if int(newY) < int(edges.bottom) || int(newY) >= int(edges.top) || int(newX) < int(edges.left) || int(newX) >= int(edges.right) {
 		s.reset()
 		return
 	}
