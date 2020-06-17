@@ -47,6 +47,10 @@ func (l location) Y() float64 {
 	return l.y
 }
 
+func (l location) Equal(other location) bool {
+	return l.x == other.x && l.y == other.y
+}
+
 type Edges struct {
 	left   float64
 	right  float64
