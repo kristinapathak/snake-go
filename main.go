@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"image/color"
 	"os"
 	"time"
 
@@ -15,9 +14,17 @@ import (
 	"golang.org/x/image/colornames"
 )
 
-type SnakeConfig struct {
-	Board      BoardConfig
-	SnakeSpeed float64
+type ViperConfig struct {
+	Board BoardConfig
+	Snake SnakeViperConfig
+}
+
+type SnakeViperConfig struct {
+	Color          string
+	Speed          float64
+	StartingFrames int
+	FramesToGrow   int
+	Threshold      float64
 }
 
 type BoardConfig struct {
@@ -44,7 +51,7 @@ func run() {
 		fmt.Fprintf(os.Stderr, "failed to read in viper config: %v\n", err.Error())
 		os.Exit(1)
 	}
-	config := new(SnakeConfig)
+	config := new(ViperConfig)
 	err = v.Unmarshal(config)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to unmarshal config: %v\n", err.Error())
@@ -84,8 +91,18 @@ func run() {
 	tracker := NewSingleTracker(es, config.Board.SquareSize, config.Board.Buffer, colornames.Indianred)
 
 	// set up the snake itself
-	colors := []color.Color{colornames.Darkmagenta, colornames.Lavender}
-	snake := NewSnake(tracker, es, config.SnakeSpeed, config.Board.SquareSize, config.Board.Buffer, colors)
+	c := SnakeConfig{
+		Edges:          es,
+		SquareSize:     config.Board.SquareSize,
+		Buffer:         config.Board.Buffer,
+		Colors:         GetEnum(config.Snake.Color).GetColors(),
+		PixelsPerSec:   config.Snake.Speed,
+		StartingFrames: config.Snake.StartingFrames,
+		FramesToGrow:   config.Snake.FramesToGrow,
+		Threshold:      config.Snake.Threshold,
+	}
+
+	snake := NewSnake(tracker, c)
 
 	g := Game{
 		playingBoard: playingBoard,
