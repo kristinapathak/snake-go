@@ -146,13 +146,23 @@ func run() {
 		window:       win,
 		frameCount:   NewCounter(100),
 		updateCount:  NewCounter(100),
+		playerText:   make([]*text.Text, len(snakes)),
 	}
 	if config.Board.ShowCounters {
 		g.txt = text.New(pixel.V(1, 1), text.NewAtlas(
-			ttfFromBytesMust(goregular.TTF, config.Board.Buffer),
+			ttfFromBytesMust(goregular.TTF, config.Board.Buffer-2.0),
 			text.ASCII, text.RangeTable(unicode.Latin),
 		))
 	}
+	for index, s := range snakes {
+		t := text.New(pixel.V(config.Board.Buffer+(float64(index)*(windowWidth-config.Board.Buffer*4)), windowHeight-(config.Board.Buffer-4.0)), text.NewAtlas(
+			ttfFromBytesMust(goregular.TTF, config.Board.Buffer-4.0),
+			text.ASCII, text.RangeTable(unicode.Latin),
+		))
+		t.Color = s.config.Colors[0]
+		g.playerText[index] = t
+	}
+
 	stopChan := gameloop.StartLoop(g, time.Second/time.Duration(config.Board.TickRate), snakes)
 
 	// keep running and updating things until the window is closed.
@@ -170,6 +180,8 @@ type Game struct {
 	frameCount   *Counter
 	updateCount  *Counter
 	txt          *text.Text
+
+	playerText []*text.Text
 }
 
 func (g *Game) Integrate(currentState interface{}, t float64, deltaT float64) interface{} {
@@ -235,8 +247,11 @@ func (g *Game) Render(state interface{}, t float64, alpha float64) {
 
 	g.tracker.Paint().Draw(g.window)
 	snakes := state.([]*Snake)
-	for _, s := range snakes {
+	for index, s := range snakes {
 		s.Paint().Draw(g.window)
+		g.playerText[index].Clear()
+		g.playerText[index].WriteString(fmt.Sprintf("P%d: %d", index+1, s.score))
+		g.playerText[index].Draw(g.window, pixel.IM)
 	}
 	if g.txt != nil {
 		g.frameCount.Tick(t)
