@@ -119,8 +119,8 @@ func run() {
 	}
 
 	if config.Multiplayer.Enable {
-		middleY := (es.top-es.bottom)/3.0 + es.bottom
-		middleX := (es.right-es.left)/3.0 + es.left
+		middleY := float64(int((es.top-es.bottom)/3.0)) + es.bottom
+		middleX := float64(int((es.right-es.left)/3.0)) + es.left
 		c.StartingPosition = location{x: middleX, y: middleY}
 	}
 
@@ -129,8 +129,8 @@ func run() {
 
 	if config.Multiplayer.Enable {
 		c.Colors = GetColor(config.Multiplayer.Color).GetColors(GetStyle(config.Multiplayer.Style))
-		middleX := 2*(es.top-es.bottom)/3.0 + es.bottom
-		middleY := 2*(es.right-es.left)/3.0 + es.left
+		middleX := float64(int(2*(es.top-es.bottom)/3.0)) + es.bottom
+		middleY := float64(int(2*(es.right-es.left)/3.0)) + es.left
 		c.StartingPosition = location{x: middleX, y: middleY}
 
 		snake2 := NewSnake(tracker, c)
@@ -169,7 +169,6 @@ func run() {
 	for !win.Closed() {
 	}
 	stopChan <- struct{}{}
-	snake.Stop()
 }
 
 type Game struct {

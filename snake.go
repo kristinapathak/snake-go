@@ -71,7 +71,6 @@ type Snake struct {
 
 	item       tracker
 	otherSnake tracker
-	shutdown   chan struct{}
 }
 
 type SnakeConfig struct {
@@ -101,7 +100,6 @@ func NewSnake(itemTracker tracker, config SnakeConfig) *Snake {
 		config:    c,
 		locations: l,
 		item:      item,
-		shutdown:  make(chan struct{}, 1),
 	}
 	s.Reset(nil)
 	return s
@@ -214,10 +212,6 @@ func (s *Snake) Paint() *imdraw.IMDraw {
 	return newDrawing
 }
 
-func (s *Snake) Stop() {
-	close(s.shutdown)
-}
-
 func (s *Snake) Tick(t float64, deltaT float64) {
 	h := s.locations.Front().Value.(point)
 	newX := h.X()
@@ -320,6 +314,7 @@ func (s *Snake) Reset(_ *list.List) {
 	s.nextDirection = None
 	s.locations.Init()
 	s.locations.PushFront(s.config.StartingPosition)
+	s.currDirectionStartLoc = location{x: s.config.StartingPosition.X() - 2.0, y: s.config.StartingPosition.Y() - 2.0}
 	s.grow = s.config.StartingFrames
 	s.score = 0
 }
