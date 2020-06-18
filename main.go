@@ -169,7 +169,6 @@ func run() {
 	for !win.Closed() {
 	}
 	stopChan <- struct{}{}
-	snake.Stop()
 }
 
 type Game struct {
