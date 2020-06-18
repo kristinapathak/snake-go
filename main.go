@@ -19,8 +19,15 @@ import (
 )
 
 type ViperConfig struct {
-	Board BoardConfig
-	Snake SnakeViperConfig
+	Board       BoardConfig
+	Snake       SnakeViperConfig
+	Multiplayer MultiplayerConfig
+}
+
+type MultiplayerConfig struct {
+	Enable bool
+	Color  string
+	Style  string
 }
 
 type SnakeViperConfig struct {
@@ -111,7 +118,27 @@ func run() {
 		Threshold:      config.Snake.Threshold,
 	}
 
+	if config.Multiplayer.Enable {
+		middleY := (es.top-es.bottom)/3.0 + es.bottom
+		middleX := (es.right-es.left)/3.0 + es.left
+		c.StartingPosition = location{x: middleX, y: middleY}
+	}
+
 	snake := NewSnake(tracker, c)
+	snakes := []*Snake{snake}
+
+	if config.Multiplayer.Enable {
+		c.Colors = GetColor(config.Multiplayer.Color).GetColors(GetStyle(config.Multiplayer.Style))
+		middleX := 2*(es.top-es.bottom)/3.0 + es.bottom
+		middleY := 2*(es.right-es.left)/3.0 + es.left
+		c.StartingPosition = location{x: middleX, y: middleY}
+
+		snake2 := NewSnake(tracker, c)
+
+		snake.SetOtherSnake(snake2)
+		snake2.SetOtherSnake(snake)
+		snakes = append(snakes, snake2)
+	}
 
 	g := &Game{
 		playingBoard: playingBoard,
@@ -126,7 +153,7 @@ func run() {
 			text.ASCII, text.RangeTable(unicode.Latin),
 		))
 	}
-	stopChan := gameloop.StartLoop(g, time.Second/time.Duration(config.Board.TickRate), snake)
+	stopChan := gameloop.StartLoop(g, time.Second/time.Duration(config.Board.TickRate), snakes)
 
 	// keep running and updating things until the window is closed.
 	for !win.Closed() {
@@ -146,7 +173,15 @@ type Game struct {
 }
 
 func (g *Game) Integrate(currentState interface{}, t float64, deltaT float64) interface{} {
-	snake := currentState.(*Snake)
+	var snake2 *Snake
+
+	snakes := currentState.([]*Snake)
+	snake := snakes[0]
+
+	if len(snakes) == 2 {
+		snake2 = snakes[1]
+	}
+
 	if g.window.Pressed(pixelgl.KeyLeft) {
 		snake.SetDirection(Left)
 	}
@@ -162,8 +197,25 @@ func (g *Game) Integrate(currentState interface{}, t float64, deltaT float64) in
 	if g.txt != nil {
 		g.updateCount.Tick(t)
 	}
+
+	if snake2 != nil && g.window.Pressed(pixelgl.KeyA) {
+		snake2.SetDirection(Left)
+	}
+	if snake2 != nil && g.window.Pressed(pixelgl.KeyD) {
+		snake2.SetDirection(Right)
+	}
+	if snake2 != nil && g.window.Pressed(pixelgl.KeyS) {
+		snake2.SetDirection(Down)
+	}
+	if snake2 != nil && g.window.Pressed(pixelgl.KeyW) {
+		snake2.SetDirection(Up)
+	}
+
 	snake.Tick(t, deltaT)
-	return snake
+	if snake2 != nil {
+		snake2.Tick(t, deltaT)
+	}
+	return snakes
 }
 func ttfFromBytesMust(b []byte, size float64) font.Face {
 	ttf, err := truetype.Parse(b)
@@ -182,8 +234,10 @@ func (g *Game) Render(state interface{}, t float64, alpha float64) {
 	g.playingBoard.Draw(g.window)
 
 	g.tracker.Paint().Draw(g.window)
-	snake := state.(*Snake)
-	snake.Paint().Draw(g.window)
+	snakes := state.([]*Snake)
+	for _, s := range snakes {
+		s.Paint().Draw(g.window)
+	}
 	if g.txt != nil {
 		g.frameCount.Tick(t)
 		g.txt.Clear()

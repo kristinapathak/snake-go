@@ -2,7 +2,6 @@ package main
 
 import (
 	"container/list"
-	"fmt"
 	"image/color"
 	"math/rand"
 	"sync"
@@ -93,9 +92,6 @@ func (s *singleTracker) Paint() *imdraw.IMDraw {
 func (s *singleTracker) findNewLocation(locations *list.List) location {
 	gridX := (s.edges.right - s.edges.left)
 	gridY := (s.edges.top - s.edges.bottom)
-	// TODO: use the snake location to make sure we don't pick a spot where the
-	// snake is.
-	fmt.Printf("GridWdith Square X: %f Y: %f\n", gridX, gridY)
 	if locations == nil || locations.Len() < 1 {
 		return location{
 			x: float64(s.randomGen.Intn(int(gridX)-1)) + s.edges.left,

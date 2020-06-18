@@ -69,8 +69,9 @@ type Snake struct {
 	grow                  int
 	score                 int
 
-	item     tracker
-	shutdown chan struct{}
+	item       tracker
+	otherSnake tracker
+	shutdown   chan struct{}
 }
 
 type SnakeConfig struct {
@@ -102,7 +103,7 @@ func NewSnake(itemTracker tracker, config SnakeConfig) *Snake {
 		item:      item,
 		shutdown:  make(chan struct{}, 1),
 	}
-	s.reset()
+	s.Reset(nil)
 	return s
 }
 
@@ -156,6 +157,12 @@ func validateConfig(config SnakeConfig) SnakeConfig {
 	return c
 }
 
+func (s *Snake) SetOtherSnake(other tracker) {
+	if other != nil {
+		s.otherSnake = other
+	}
+}
+
 func (s *Snake) SetDirection(d Direction) {
 	// don't let the snake do a 180 turn
 	if s.currDirection == Up && d == Down ||
@@ -166,6 +173,10 @@ func (s *Snake) SetDirection(d Direction) {
 		return
 	}
 	s.nextDirection = d
+}
+
+func (s *Snake) At(l location) bool {
+	return pointInList(l, s.locations)
 }
 
 func (s *Snake) Paint() *imdraw.IMDraw {
@@ -247,12 +258,21 @@ func (s *Snake) Tick(t float64, deltaT float64) {
 	// check that the new spot won't be outside of the game board
 	edges := s.config.Edges
 	if int(newY) < int(edges.bottom) || int(newY) >= int(edges.top) || int(newX) < int(edges.left) || int(newX) >= int(edges.right) {
-		s.reset()
+		s.Reset(nil)
 		return
 	}
 
 	// if we're currently going nowhere, we're done here
 	if s.currDirection == None {
+		return
+	}
+
+	newSquare := location{x: newX, y: newY}
+
+	// check for collisions with the other snake
+	if s.otherSnake != nil && s.otherSnake.At(newSquare) {
+		s.Reset(nil)
+		fmt.Println("collided with other snake. dead")
 		return
 	}
 
@@ -267,7 +287,7 @@ func (s *Snake) Tick(t float64, deltaT float64) {
 	for e != nil {
 		l := e.Value.(point)
 		if math.Abs(l.X()-newX) < 0.3 && math.Abs(l.Y()-newY) < 0.3 {
-			s.reset()
+			s.Reset(nil)
 			fmt.Println("killed self")
 			return
 		}
@@ -275,7 +295,6 @@ func (s *Snake) Tick(t float64, deltaT float64) {
 	}
 
 	// add new item to the list
-	newSquare := location{x: newX, y: newY}
 	s.locations.PushFront(newSquare)
 
 	// check if we ate something and if so, don't remove the last item from the
@@ -296,7 +315,7 @@ func (s *Snake) Tick(t float64, deltaT float64) {
 }
 
 // game is lost, bring everything back to the beginning
-func (s *Snake) reset() {
+func (s *Snake) Reset(_ *list.List) {
 	s.currDirection = None
 	s.nextDirection = None
 	s.locations.Init()

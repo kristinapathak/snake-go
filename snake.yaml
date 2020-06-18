@@ -2,12 +2,12 @@
 
 board:
   squareSize: 10
-  numSquaresWide: 100
-  numSquaresHigh: 60
+  numSquaresWide: 40
+  numSquaresHigh: 40
   buffer: 20
   borderWidth: 3
   showGrid: false
-  showCounters: true
+  showCounters: false
   tickRate: 60
 
 snake:
@@ -15,6 +15,11 @@ snake:
   startingFrames: 15
   framesToGrow: 5
   threshold: 5.0
-  color: rainbow
+  color: blue
   style: striped
   taperTo: 4
+
+multiplayer:
+  enable: true
+  color: red
+  style: striped
